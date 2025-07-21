@@ -32,7 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // 対象となる画像ファイルだけをフィルタして並べ替える
                 let imageFiles = files
                     .filter { allowedExtensions.contains($0.pathExtension.lowercased()) }
-                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+//.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -67,7 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 
-/// MARK: ── ImageViewerModel
+// MARK: ──  ── ImageViewerModel
 class ImageViewerModel: ObservableObject {
     static let shared = ImageViewerModel() // シングルトンインスタンス（外部から共有的にアクセス）
     
@@ -103,7 +103,7 @@ class ImageViewerModel: ObservableObject {
             ) {
                 let filtered = urls
                     .filter { allowed.contains($0.pathExtension.lowercased()) }
-                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+//.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -188,7 +188,7 @@ struct PageControllerView: NSViewControllerRepresentable {
         Coordinator(parent: self) // Coordinator（デリゲート）を生成
     }
     
-    // MARK: ── Coordinatorクラス（NSPageControllerDelegate対応）
+// MARK: ── Coordinatorクラス（NSPageControllerDelegate対応）
     class Coordinator: NSObject, NSPageControllerDelegate {
         let parent: PageControllerView // 親View構造体への参照
         
@@ -372,7 +372,7 @@ class KeyHandlingView: NSView {
 }
 
 // SwiftUI から macOS の NSView を埋め込むラッパー
-// キーボードイベント（特に←→キー）を処理して、NSPageController のページ移動を可能にする
+// MARK: ── キーボードイベント（特に←→キー）を処理して、NSPageController のページ移動を可能にする
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
     let holder: PageControllerView.ControllerHolder // NSPageController へのアクセス用ホルダ（弱参照）
     
@@ -481,6 +481,7 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
     }
 }
 
+// MARK: ── ウィンドウリサイズを検出
 struct WindowResizeObserver: NSViewRepresentable {
     var onResizeEnded: () -> Void
     
@@ -516,7 +517,6 @@ struct WindowResizeObserver: NSViewRepresentable {
         }
         return view
     }
-    
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
@@ -641,10 +641,10 @@ struct ContentView: View {
                     //キーボード対応（← → で前後画像）
                     KeyboardHandlingRepresentable(holder: holder)
                         .allowsHitTesting(false)
-                    
                     //ウィンドウリサイズを検出して viewerID を更新
                     WindowResizeObserver {
                         viewerID = UUID() //リサイズ終了後に一度だけ再構築
+                        //print("リサイズ終了後に一度だけ再構築")
                     }
                     .frame(width: 0, height: 0)
                 }
