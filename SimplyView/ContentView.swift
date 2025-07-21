@@ -32,7 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // 対象となる画像ファイルだけをフィルタして並べ替える
                 let imageFiles = files
                     .filter { allowedExtensions.contains($0.pathExtension.lowercased()) }
-                    //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -344,7 +344,7 @@ struct PageControllerView: NSViewControllerRepresentable {
         }
         
     }
-
+    
     // PageControllerを外部から操作するためのホルダークラス
     class ControllerHolder { weak var controller: NSPageController? }
 }
@@ -376,28 +376,103 @@ class KeyHandlingView: NSView {
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
     let holder: PageControllerView.ControllerHolder // NSPageController へのアクセス用ホルダ（弱参照）
     
-        
-    
     // 実際の NSView（KeyHandlingView）を生成する
     func makeNSView(context: Context) -> NSView {
         let v = KeyHandlingView() // NSView のサブクラス（カスタム）を作成
-                
+        
         // キーイベントが発生したときの処理を定義
+        
         v.onKey = { ev in
-            guard let pc = holder.controller else { return false } // PageControllerが無ければ無効
+            guard let pc = holder.controller else { return false }
+            let currentIndex = pc.selectedIndex
+            let count = pc.arrangedObjects.count
+            
             switch ev.keyCode {
             case 123: // ← 左キー
-                pc.navigateBack(nil)  // 前の画像に遷移
-                return true           // イベントを処理済みにする
+                if currentIndex > 0 {
+                    pc.navigateBack(nil)
+                } else {
+                    showAlert(message: "先頭の画像です")
+                }
+                return true
+                
             case 124: // → 右キー
-                pc.navigateForward(nil) // 次の画像に遷移
-                return true             // イベントを処理済みにする
+                if currentIndex < count - 1 {
+                    pc.navigateForward(nil)
+                } else {
+                    showAlert(message: "最後の画像です")
+                }
+                return true
+                
             default:
-                return false // 上記以外のキーは処理しない
+                return false
             }
         }
-        
         return v // NSView を SwiftUI に返す
+    }
+    
+    
+    func showAlert(message: String) {
+        // 通知用ウィンドウを作成（タイトルバーなし）
+        let alertWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 80),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        
+        alertWindow.isReleasedWhenClosed = false
+        alertWindow.level = .floating
+        alertWindow.backgroundColor = .clear
+        alertWindow.isOpaque = false
+        alertWindow.hasShadow = true
+        alertWindow.ignoresMouseEvents = true // ユーザー操作無効化
+        alertWindow.collectionBehavior = [.canJoinAllSpaces, .transient] // 全画面でも表示可能
+        alertWindow.alphaValue = 0.0
+        
+        // メッセージ表示用ラベル
+        let textField = NSTextField(labelWithString: message)
+        textField.alignment = .center
+        textField.font = NSFont.systemFont(ofSize: 16, weight: .medium)
+        textField.textColor = NSColor.white
+        textField.backgroundColor = .clear
+        textField.isBezeled = false
+        textField.drawsBackground = false
+        
+        // 背景ビュー（角丸・黒半透明）
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 80))
+        contentView.wantsLayer = true
+        contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
+        contentView.layer?.cornerRadius = 14
+        textField.frame = contentView.bounds.insetBy(dx: 20, dy: 20)
+        contentView.addSubview(textField)
+        
+        alertWindow.contentView = contentView
+        
+        // 画面中央に配置
+        if let screenFrame = NSScreen.main?.frame {
+            let x = (screenFrame.width - alertWindow.frame.width) / 2
+            let y = (screenFrame.height - alertWindow.frame.height) / 2
+            alertWindow.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        
+        alertWindow.makeKeyAndOrderFront(nil)
+        
+        // フェードイン
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            alertWindow.animator().alphaValue = 1.0
+        }
+        
+        // 自動フェードアウト & 閉じる（1.5秒後）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.3
+                alertWindow.animator().alphaValue = 0.0
+            }, completionHandler: {
+                alertWindow.close()
+            })
+        }
     }
     
     // SwiftUI の View 更新タイミングで呼ばれる（ここでは何もしない）
@@ -408,15 +483,15 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
 
 struct WindowResizeObserver: NSViewRepresentable {
     var onResizeEnded: () -> Void
-
+    
     class Coordinator {
         var workItem: DispatchWorkItem?
     }
-
+    
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
-
+    
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
@@ -428,12 +503,12 @@ struct WindowResizeObserver: NSViewRepresentable {
                 ) { _ in
                     // 以前の処理をキャンセル
                     context.coordinator.workItem?.cancel()
-
+                    
                     // 一定時間後に onResizeEnded を呼び出す
                     let item = DispatchWorkItem {
                         onResizeEnded()
                     }
-
+                    
                     context.coordinator.workItem = item
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
                 }
@@ -441,7 +516,7 @@ struct WindowResizeObserver: NSViewRepresentable {
         }
         return view
     }
-
+    
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
