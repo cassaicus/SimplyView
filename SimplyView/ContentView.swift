@@ -592,7 +592,9 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
         // 初期状態は透明（アニメーションでフェードイン）
         alertWindow.alphaValue = 0.0
         // ウィンドウを画面上に表示
-        alertWindow.makeKeyAndOrderFront(nil)
+        //alertWindow.makeKeyAndOrderFront(nil)
+        // ウィンドウを画面上に表示 変更後（警告なし）
+        NSApp.mainWindow?.addChildWindow(alertWindow, ordered: .above)
         // フェードインのアニメーション（0.2秒で不透明に）
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
