@@ -32,7 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // 対象となる画像ファイルだけをフィルタして並べ替える
                 let imageFiles = files
                     .filter { allowedExtensions.contains($0.pathExtension.lowercased()) }
-//.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -71,7 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 class ImageViewerModel: ObservableObject {
     static let shared = ImageViewerModel() // シングルトンインスタンス（外部から共有的にアクセス）
     
-
+    
     //////////////
     // ← 既存のプロパティ群の中にこの2つを追加
     enum SpreadViewMode: Int {
@@ -79,18 +79,18 @@ class ImageViewerModel: ObservableObject {
         case previousLeft
         case nextRight
     }
-
+    
     @Published var spreadViewMode: SpreadViewMode = .none
     
     
     
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
-
+    
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
         objectWillChange.send() // 強制UI更新
     }
-
+    
     func clearOverrides() {
         temporaryImageOverrides.removeAll()
     }
@@ -100,7 +100,7 @@ class ImageViewerModel: ObservableObject {
     //////////////
     
     
-
+    
     
     @Published var images: [URL] = []       // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
     @Published var currentIndex = 0         // 現在表示中の画像インデックス
@@ -136,7 +136,7 @@ class ImageViewerModel: ObservableObject {
             ) {
                 let filtered = urls
                     .filter { allowed.contains($0.pathExtension.lowercased()) }
-//.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -206,25 +206,25 @@ class ImageViewerModel: ObservableObject {
         return newImage
     }
     // 見開き時のページ2
-//    func makeSpreadImagesec(current: URL, next: URL?) -> NSImage? {
-//        guard let img1 = NSImage(contentsOf: current),
-//              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
-//            return nil
-//        }
-//        
-//        let totalWidth = img1.size.width + img2.size.width
-//        let maxHeight = max(img1.size.height, img2.size.height)
-//        let size = NSSize(width: totalWidth, height: maxHeight)
-//        
-//        let newImage = NSImage(size: size)
-//        newImage.lockFocus()
-//        img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-//        img1.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-//
-//        newImage.unlockFocus()
-//        
-//        return newImage
-//    }
+    //    func makeSpreadImagesec(current: URL, next: URL?) -> NSImage? {
+    //        guard let img1 = NSImage(contentsOf: current),
+    //              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
+    //            return nil
+    //        }
+    //
+    //        let totalWidth = img1.size.width + img2.size.width
+    //        let maxHeight = max(img1.size.height, img2.size.height)
+    //        let size = NSSize(width: totalWidth, height: maxHeight)
+    //
+    //        let newImage = NSImage(size: size)
+    //        newImage.lockFocus()
+    //        img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+    //        img1.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+    //
+    //        newImage.unlockFocus()
+    //
+    //        return newImage
+    //    }
 }
 
 
@@ -260,7 +260,7 @@ struct PageControllerView: NSViewControllerRepresentable {
         Coordinator(parent: self) // Coordinator（デリゲート）を生成
     }
     
-// MARK: ── Coordinatorクラス（NSPageControllerDelegate対応）
+    // MARK: ── Coordinatorクラス（NSPageControllerDelegate対応）
     class Coordinator: NSObject, NSPageControllerDelegate {
         let parent: PageControllerView // 親View構造体への参照
         
@@ -293,50 +293,50 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // ページ準備（画像の読み込みと初期設定）
         func pageController(_ pc: NSPageController, prepare vc: NSViewController, with object: Any?) {
-//            guard let url = object as? URL,
-//                  let iv = vc.view as? NSImageView,
-//                  let layer = iv.layer else { return }
-//            
-//            //iv.image = NSImage(contentsOf: url) // 対象画像をロード
-//            
-//            //print(parent.model.spreadViewMode)
-//            
-//            let idx = parent.model.images.firstIndex(of: url) ?? 0
-//            let nextURL = (idx + 1 < parent.model.images.count) ? parent.model.images[idx + 1] : nil
-//
-//            print(parent.model.spreadViewMode)
-//            print(nextURL as Any)
+            //            guard let url = object as? URL,
+            //                  let iv = vc.view as? NSImageView,
+            //                  let layer = iv.layer else { return }
+            //
+            //            //iv.image = NSImage(contentsOf: url) // 対象画像をロード
+            //
+            //            //print(parent.model.spreadViewMode)
+            //
+            //            let idx = parent.model.images.firstIndex(of: url) ?? 0
+            //            let nextURL = (idx + 1 < parent.model.images.count) ? parent.model.images[idx + 1] : nil
+            //
+            //            print(parent.model.spreadViewMode)
+            //            print(nextURL as Any)
             
             //iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
-
-//            switch parent.model.spreadViewMode {
-//            case .none:
-//                iv.image = NSImage(contentsOf: url)
-//                return
-//            case .previousLeft:
-//                iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
-//                return
-//            case .nextRight:
-//                iv.image = parent.model.makeSpreadImage(current: url, next: nextURL)
-//                return
-//            }
+            
+            //            switch parent.model.spreadViewMode {
+            //            case .none:
+            //                iv.image = NSImage(contentsOf: url)
+            //                return
+            //            case .previousLeft:
+            //                iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
+            //                return
+            //            case .nextRight:
+            //                iv.image = parent.model.makeSpreadImage(current: url, next: nextURL)
+            //                return
+            //            }
             
             
-///////////////////
+            ///////////////////
             guard let url = object as? URL,
-                     let iv = vc.view as? NSImageView,
-                     let layer = iv.layer else { return }
-
-               let model = parent.model
-               let index = model.images.firstIndex(of: url) ?? 0
-
-               // 差し替え画像があればそれを優先表示
-               if let override = model.temporaryImageOverrides[url] {
-                   iv.image = override
-               } else {
-                   iv.image = NSImage(contentsOf: url)
-               }
-///////////////////
+                  let iv = vc.view as? NSImageView,
+                  let layer = iv.layer else { return }
+            
+            let model = parent.model
+            let index = model.images.firstIndex(of: url) ?? 0
+            
+            // 差し替え画像があればそれを優先表示
+            if let override = model.temporaryImageOverrides[url] {
+                iv.image = override
+            } else {
+                iv.image = NSImage(contentsOf: url)
+            }
+            ///////////////////
             
             
             
@@ -359,13 +359,13 @@ struct PageControllerView: NSViewControllerRepresentable {
                 DispatchQueue.main.async {
                     self.parent.model.currentIndex = idx // インデックスを更新
                     self.parent.model.clearOverrides() // 合成を解除
-
+                    
                 }
             }
         }
         
         
-
+        
         // 拡大処理（ピンチ）
         @objc func handlePinch(_ g: NSMagnificationGestureRecognizer) {
             // 対象のビューが NSImageView であることを確認し、CALayer を取得
@@ -495,14 +495,14 @@ class KeyHandlingView: NSView {
 // SwiftUI から macOS の NSView を埋め込むラッパー
 // MARK: ── キーボードイベント（特に←→キー）を処理して、NSPageController のページ移動を可能にする
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
-    let holder: PageControllerView.ControllerHolder // NSPageController へのアクセス用ホルダ（弱参照）
+    // NSPageController へのアクセス用ホルダ（弱参照）
+    let holder: PageControllerView.ControllerHolder
     
     // 実際の NSView（KeyHandlingView）を生成する
     func makeNSView(context: Context) -> NSView {
         let v = KeyHandlingView() // NSView のサブクラス（カスタム）を作成
         
         // キーイベントが発生したときの処理を定義
-        
         v.onKey = { ev in
             guard let pc = holder.controller else { return false }
             let currentIndex = pc.selectedIndex
@@ -510,19 +510,20 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             
             switch ev.keyCode {
             case 123: // ← 左キー
-                                
                 if currentIndex > 0 {
                     pc.navigateBack(nil)
                 } else {
-                    showAlert(message: "先頭の画像です")
-                }
+                    if let win = v.window {
+                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+                    }                }
                 return true
-                
             case 124: // → 右キー
                 if currentIndex < count - 1 {
                     pc.navigateForward(nil)
                 } else {
-                    showAlert(message: "最後の画像です")
+                    if let win = v.window {
+                        showAutoDismissAlert(message: "最後の画像です", in: win)
+                    }
                 }
                 return true
                 
@@ -533,9 +534,8 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
         return v // NSView を SwiftUI に返す
     }
     
-    
-    func showAlert(message: String) {
-        // 通知用ウィンドウを作成（タイトルバーなし）
+    // 通知用ウィンドウを作成（タイトルバーなし）
+    func showAutoDismissAlert(message: String, in window: NSWindow) {
         let alertWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 80),
             styleMask: [.borderless],
@@ -548,20 +548,16 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
         alertWindow.backgroundColor = .clear
         alertWindow.isOpaque = false
         alertWindow.hasShadow = true
-        alertWindow.ignoresMouseEvents = true // ユーザー操作無効化
-        alertWindow.collectionBehavior = [.canJoinAllSpaces, .transient] // 全画面でも表示可能
-        alertWindow.alphaValue = 0.0
+        alertWindow.ignoresMouseEvents = true
+        alertWindow.collectionBehavior = [.transient]
         
-        // メッセージ表示用ラベル
         let textField = NSTextField(labelWithString: message)
         textField.alignment = .center
         textField.font = NSFont.systemFont(ofSize: 16, weight: .medium)
         textField.textColor = NSColor.white
         textField.backgroundColor = .clear
-        textField.isBezeled = false
         textField.drawsBackground = false
         
-        // 背景ビュー（角丸・黒半透明）
         let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 80))
         contentView.wantsLayer = true
         contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
@@ -571,22 +567,21 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
         
         alertWindow.contentView = contentView
         
-        // 画面中央に配置
-        if let screenFrame = NSScreen.main?.frame {
-            let x = (screenFrame.width - alertWindow.frame.width) / 2
-            let y = (screenFrame.height - alertWindow.frame.height) / 2
-            alertWindow.setFrameOrigin(NSPoint(x: x, y: y))
-        }
+        // 💡 呼び出し元のウィンドウ中心に表示
+        let parentFrame = window.frame
+        let alertSize = alertWindow.frame.size
+        let x = parentFrame.origin.x + (parentFrame.size.width - alertSize.width) / 2
+        let y = parentFrame.origin.y + (parentFrame.size.height - alertSize.height) / 2
+        alertWindow.setFrameOrigin(NSPoint(x: x, y: y))
         
+        alertWindow.alphaValue = 0.0
         alertWindow.makeKeyAndOrderFront(nil)
         
-        // フェードイン
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             alertWindow.animator().alphaValue = 1.0
         }
         
-        // 自動フェードアウト & 閉じる（1.5秒後）
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
@@ -751,8 +746,7 @@ struct ContentView: View {
                     let current = model.images[idx]
                     let previous = model.images[idx - 1]
                     if let combined = model.makeSpreadImage(current: current, next: previous) {
-                    //if let combined = model.makeSpreadImage(current: previous, next: current) {
-
+                        //if let combined = model.makeSpreadImage(current: previous, next: current) {
                         model.overrideImage(for: current, with: combined)
                         // ✅ SwiftUI側からViewを再生成
                         viewerID = UUID()
@@ -762,7 +756,7 @@ struct ContentView: View {
                 }
                 .controlSize(.small)
                 .help("この画像だけ一時的に見開きで表示します")
-
+                
                 
                 
                 
