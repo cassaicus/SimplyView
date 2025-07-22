@@ -67,7 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 
-// MARK: ──  ── ImageViewerModel
+// MARK: ImageViewerModel
 class ImageViewerModel: ObservableObject {
     static let shared = ImageViewerModel() // シングルトンインスタンス（外部から共有的にアクセス）
     
@@ -94,6 +94,8 @@ class ImageViewerModel: ObservableObject {
         return _thumbnailCache[url] // キャッシュから該当URLのサムネイルを返す
     }
     
+    
+    // フォルダから画像を読みだす
     func loadImagesFromDirectory(_ folder: URL) {
         let allowed = ["jpg","jpeg","png","gif","bmp","tiff"] // 対応画像拡張子
         
@@ -142,7 +144,7 @@ class ImageViewerModel: ObservableObject {
             }
         }
     }
-    
+    // リサイズ
     func resizeImage(image: NSImage, size: NSSize) -> NSImage {
         guard let rep = image.bestRepresentation(for: NSRect(origin: .zero, size: size), context: nil, hints: nil) else {
             return image // リサイズできない場合は元画像を返す
@@ -152,6 +154,25 @@ class ImageViewerModel: ObservableObject {
         rep.draw(in: NSRect(origin: .zero, size: size)) // 指定サイズに描画
         resizedImage.unlockFocus() // 描画終了
         return resizedImage
+    }
+    // 見開き時のページ
+    func makeSpreadImage(current: URL, next: URL?) -> NSImage? {
+        guard let img1 = NSImage(contentsOf: current),
+              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
+            return nil
+        }
+        
+        let totalWidth = img1.size.width + img2.size.width
+        let maxHeight = max(img1.size.height, img2.size.height)
+        let size = NSSize(width: totalWidth, height: maxHeight)
+        
+        let newImage = NSImage(size: size)
+        newImage.lockFocus()
+        img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        newImage.unlockFocus()
+        
+        return newImage
     }
 }
 
