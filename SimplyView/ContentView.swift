@@ -71,6 +71,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 class ImageViewerModel: ObservableObject {
     static let shared = ImageViewerModel() // シングルトンインスタンス（外部から共有的にアクセス）
     
+
+    //////////////
+    // ← 既存のプロパティ群の中にこの2つを追加
+    enum SpreadViewMode: Int {
+        case none = 0
+        case previousLeft
+        case nextRight
+    }
+
+    @Published var spreadViewMode: SpreadViewMode = .none
+    
+    
+    
+    @Published var temporaryImageOverrides: [URL: NSImage] = [:]
+
+    func overrideImage(for url: URL, with image: NSImage) {
+        temporaryImageOverrides[url] = image
+        objectWillChange.send() // 強制UI更新
+    }
+
+    func clearOverrides() {
+        temporaryImageOverrides.removeAll()
+    }
+    
+    
+    
+    //////////////
+    
+    
+
+    
     @Published var images: [URL] = []       // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
     @Published var currentIndex = 0         // 現在表示中の画像インデックス
     @Published var scale: CGFloat = 1.0     // 現在の拡大率（ピンチ/ダブルクリックで変更）
@@ -155,7 +186,7 @@ class ImageViewerModel: ObservableObject {
         resizedImage.unlockFocus() // 描画終了
         return resizedImage
     }
-    // 見開き時のページ
+    // 見開き時のページ１
     func makeSpreadImage(current: URL, next: URL?) -> NSImage? {
         guard let img1 = NSImage(contentsOf: current),
               let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
@@ -174,6 +205,26 @@ class ImageViewerModel: ObservableObject {
         
         return newImage
     }
+    // 見開き時のページ2
+//    func makeSpreadImagesec(current: URL, next: URL?) -> NSImage? {
+//        guard let img1 = NSImage(contentsOf: current),
+//              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
+//            return nil
+//        }
+//        
+//        let totalWidth = img1.size.width + img2.size.width
+//        let maxHeight = max(img1.size.height, img2.size.height)
+//        let size = NSSize(width: totalWidth, height: maxHeight)
+//        
+//        let newImage = NSImage(size: size)
+//        newImage.lockFocus()
+//        img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+//        img1.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+//
+//        newImage.unlockFocus()
+//        
+//        return newImage
+//    }
 }
 
 
@@ -242,11 +293,56 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // ページ準備（画像の読み込みと初期設定）
         func pageController(_ pc: NSPageController, prepare vc: NSViewController, with object: Any?) {
-            guard let url = object as? URL,
-                  let iv = vc.view as? NSImageView,
-                  let layer = iv.layer else { return }
+//            guard let url = object as? URL,
+//                  let iv = vc.view as? NSImageView,
+//                  let layer = iv.layer else { return }
+//            
+//            //iv.image = NSImage(contentsOf: url) // 対象画像をロード
+//            
+//            //print(parent.model.spreadViewMode)
+//            
+//            let idx = parent.model.images.firstIndex(of: url) ?? 0
+//            let nextURL = (idx + 1 < parent.model.images.count) ? parent.model.images[idx + 1] : nil
+//
+//            print(parent.model.spreadViewMode)
+//            print(nextURL as Any)
             
-            iv.image = NSImage(contentsOf: url) // 対象画像をロード
+            //iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
+
+//            switch parent.model.spreadViewMode {
+//            case .none:
+//                iv.image = NSImage(contentsOf: url)
+//                return
+//            case .previousLeft:
+//                iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
+//                return
+//            case .nextRight:
+//                iv.image = parent.model.makeSpreadImage(current: url, next: nextURL)
+//                return
+//            }
+            
+            
+///////////////////
+            guard let url = object as? URL,
+                     let iv = vc.view as? NSImageView,
+                     let layer = iv.layer else { return }
+
+               let model = parent.model
+               let index = model.images.firstIndex(of: url) ?? 0
+
+               // 差し替え画像があればそれを優先表示
+               if let override = model.temporaryImageOverrides[url] {
+                   iv.image = override
+               } else {
+                   iv.image = NSImage(contentsOf: url)
+               }
+///////////////////
+            
+            
+            
+            
+            
+            
             layer.anchorPoint = CGPoint(x: 0.5, y: 0.5) // 拡大/縮小の中心を設定
             layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY) // 中央に配置
             layer.setAffineTransform(.identity) // 変形リセット
@@ -262,10 +358,14 @@ struct PageControllerView: NSViewControllerRepresentable {
             if let idx = pc.arrangedObjects.firstIndex(where: { ($0 as? URL) == (object as? URL) }) {
                 DispatchQueue.main.async {
                     self.parent.model.currentIndex = idx // インデックスを更新
+                    self.parent.model.clearOverrides() // 合成を解除
+
                 }
             }
         }
         
+        
+
         // 拡大処理（ピンチ）
         @objc func handlePinch(_ g: NSMagnificationGestureRecognizer) {
             // 対象のビューが NSImageView であることを確認し、CALayer を取得
@@ -343,7 +443,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.applyTransform(iv: iv)
             }
         }
-        
+        // パン（画像移動）
         private func applyTransform(iv: NSImageView) {
             // 現在のスケール（拡大率）を取得（例: 1.0 = 等倍, 2.0 = 2倍拡大）
             let s = parent.model.scale
@@ -410,6 +510,7 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             
             switch ev.keyCode {
             case 123: // ← 左キー
+                                
                 if currentIndex > 0 {
                     pc.navigateBack(nil)
                 } else {
@@ -642,6 +743,30 @@ struct ContentView: View {
                      : "\(model.currentIndex + 1) / \(model.images.count)")
                 .font(.caption)
                 .controlSize(.small)
+                
+                //見開き表示モードを切り替えます
+                Button(action: {
+                    let idx = model.currentIndex
+                    guard idx > 0 else { return }
+                    let current = model.images[idx]
+                    let previous = model.images[idx - 1]
+                    if let combined = model.makeSpreadImage(current: current, next: previous) {
+                    //if let combined = model.makeSpreadImage(current: previous, next: current) {
+
+                        model.overrideImage(for: current, with: combined)
+                        // ✅ SwiftUI側からViewを再生成
+                        viewerID = UUID()
+                    }
+                }) {
+                    Text("見開き")
+                }
+                .controlSize(.small)
+                .help("この画像だけ一時的に見開きで表示します")
+
+                
+                
+                
+                
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
