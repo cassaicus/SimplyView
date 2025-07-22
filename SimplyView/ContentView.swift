@@ -1,18 +1,23 @@
 import SwiftUI                   // SwiftUI を使って UI を構築します
 import AppKit                    // macOS 固有の AppKit 機能を使用します
 
-// MARK: ── AppDelegate
+// MARK: AppDelegate
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var onOpenFile: (([URL]) -> Void)?  // Finder から開かれた複数ファイルの処理用クロージャ（現在は未使用）
-    var onOpenFilesWithSelected: (([URL], URL) -> Void)?  // 選択されたファイルとそのフォルダ内の画像ファイル一覧を処理するクロージャ
-    var model: ImageViewerModel? // ← モデルインスタンスを保持（サムネイル生成等で使用）
+    // Finder から開かれた複数ファイルの処理用クロージャ（現在は未使用）
+    var onOpenFile: (([URL]) -> Void)?
+    // 選択されたファイルとそのフォルダ内の画像ファイル一覧を処理するクロージャ
+    var onOpenFilesWithSelected: (([URL], URL) -> Void)?
+    // ← モデルインスタンスを保持（サムネイル生成等で使用）
+    var model: ImageViewerModel?
     
     // Finder などからアプリがファイルで開かれたときに呼び出される
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let selectedFileURL = urls.first else { return } // 最初のURLが存在しなければ処理終了
-        let folderURL = selectedFileURL.deletingLastPathComponent() // 対象ファイルのあるフォルダのURLを取得
-        
-        let panel = NSOpenPanel() // フォルダ選択ダイアログのインスタンス生成
+        // 最初のURLが存在しなければ処理終了
+        guard let selectedFileURL = urls.first else { return }
+        // 対象ファイルのあるフォルダのURLを取得
+        let folderURL = selectedFileURL.deletingLastPathComponent()
+        // フォルダ選択ダイアログのインスタンス生成
+        let panel = NSOpenPanel()
         panel.canChooseFiles = false // ファイル選択を不可に
         panel.canChooseDirectories = true // フォルダ選択を可能に
         panel.allowsMultipleSelection = false // 複数選択不可
@@ -21,7 +26,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // フォルダが選択された場合のみ処理を続ける
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
-            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff"] // 対応する画像拡張子の配列
+            // 対応する画像拡張子の配列
+            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff"]
             
             // フォルダ内のすべてのファイルを取得（隠しファイルは除外）
             if let files = try? FileManager.default.contentsOfDirectory(
@@ -32,14 +38,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // 対象となる画像ファイルだけをフィルタして並べ替える
                 let imageFiles = files
                     .filter { allowedExtensions.contains($0.pathExtension.lowercased()) }
-                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+                //大文字小文字を区別
+                //.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                //Finder風の自然順ソート
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
                         == .orderedAscending
-                    } //Finder風の自然順ソート
-                
-                guard !imageFiles.isEmpty else { return } // 一枚も画像がなければ終了
+                    }
+                // 一枚も画像がなければ終了
+                guard !imageFiles.isEmpty else { return }
                 
                 // モデルに画像一覧と選択ファイルを通知
                 onOpenFilesWithSelected?(imageFiles, selectedFileURL)
@@ -48,7 +56,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.global(qos: .userInitiated).async {
                     for url in imageFiles {
                         if ImageViewerModel.shared.thumbnail(for: url) != nil {
-                            continue // 既にキャッシュされている場合はスキップ
+                            // 既にキャッシュされている場合はスキップ
+                            continue
                         }
                         if let image = NSImage(contentsOf: url) {
                             // 40x40のサイズにリサイズしてサムネイルを作成
@@ -58,7 +67,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                 ImageViewerModel.shared.setThumbnail(thumb, for: url)
                             }
                         }
-                        Thread.sleep(forTimeInterval: 0.01) // 高速処理によるCPU負荷を抑制するためのウェイト
+                        // 高速処理によるCPU負荷を抑制するためのウェイト
+                        Thread.sleep(forTimeInterval: 0.01)
                     }
                 }
             }
@@ -69,66 +79,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 // MARK: ImageViewerModel
 class ImageViewerModel: ObservableObject {
-    static let shared = ImageViewerModel() // シングルトンインスタンス（外部から共有的にアクセス）
+    // シングルトンインスタンス（外部から共有的にアクセス）
+    static let shared = ImageViewerModel()
+
+    // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
+    @Published var images: [URL] = []
+    // 現在表示中の画像インデックス
+    @Published var currentIndex = 0
+    // 現在の拡大率（ピンチ/ダブルクリックで変更）
+    @Published var scale: CGFloat = 1.0
+    // 画像のオフセット（パン操作で使用）
+    @Published var offset: CGSize = .zero
+    // 読み込み中かどうか（インジケータ制御などで利用）
+    @Published var isLoading = false
     
-    
-    //////////////
-    // ← 既存のプロパティ群の中にこの2つを追加
-    enum SpreadViewMode: Int {
-        case none = 0
-        case previousLeft
-        case nextRight
-    }
-    
-    @Published var spreadViewMode: SpreadViewMode = .none
-    
-    
-    
+    //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
-    
+    //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
         objectWillChange.send() // 強制UI更新
     }
-    
+    //合成を解除
     func clearOverrides() {
         temporaryImageOverrides.removeAll()
     }
     
-    
-    
-    //////////////
-    
-    
-    
-    
-    @Published var images: [URL] = []       // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
-    @Published var currentIndex = 0         // 現在表示中の画像インデックス
-    @Published var scale: CGFloat = 1.0     // 現在の拡大率（ピンチ/ダブルクリックで変更）
-    @Published var offset: CGSize = .zero   // 画像のオフセット（パン操作で使用）
-    @Published var isLoading = false        // 読み込み中かどうか（インジケータ制御などで利用）
-    
-    private var _thumbnailCache: [URL: NSImage] = [:]  // URLとNSImageを結びつけるサムネイルキャッシュ
-    
+    // URLとNSImageを結びつけるサムネイルキャッシュ
+    private var _thumbnailCache: [URL: NSImage] = [:]
+    // 外部からは読み取り専用でアクセス
     var thumbnailCache: [URL: NSImage] {
-        _thumbnailCache // 外部からは読み取り専用でアクセス
+        _thumbnailCache
     }
     
     func setThumbnail(_ image: NSImage, for url: URL) {
-        _thumbnailCache[url] = image // キャッシュに登録
+        // キャッシュに登録
+        _thumbnailCache[url] = image
         DispatchQueue.main.async {
-            self.objectWillChange.send() // SwiftUI に手動で変更通知（UI更新トリガー）
+            // SwiftUI に手動で変更通知（UI更新トリガー）
+            self.objectWillChange.send()
         }
     }
-    
+    // キャッシュから該当URLのサムネイルを返す
     func thumbnail(for url: URL) -> NSImage? {
-        return _thumbnailCache[url] // キャッシュから該当URLのサムネイルを返す
+        return _thumbnailCache[url]
     }
     
     
     // フォルダから画像を読みだす
     func loadImagesFromDirectory(_ folder: URL) {
-        let allowed = ["jpg","jpeg","png","gif","bmp","tiff"] // 対応画像拡張子
+        // 対応画像拡張子配列
+        let allowed = ["jpg","jpeg","png","gif","bmp","tiff"]
         
         DispatchQueue.global(qos: .userInitiated).async {
             if let urls = try? FileManager.default.contentsOfDirectory(
@@ -136,21 +137,27 @@ class ImageViewerModel: ObservableObject {
             ) {
                 let filtered = urls
                     .filter { allowed.contains($0.pathExtension.lowercased()) }
-                //.sorted { $0.lastPathComponent < $1.lastPathComponent } //大文字小文字を区別
+                    //Finder風の自然順ソート
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
                         == .orderedAscending
-                    } //Finder風の自然順ソート
+                    }
                 
                 // メインスレッドでUI更新を行うためにディスパッチ
                 DispatchQueue.main.async {
-                    self.images = filtered          // フィルタ済画像リストをViewに反映
-                    self.currentIndex = 0           // 表示位置を先頭に
-                    self.scale = 1.0                // 拡大リセット
-                    self.offset = .zero             // オフセットリセット
-                    self._thumbnailCache.removeAll() // サムネイルキャッシュをクリア
-                    self.isLoading = true           // 読み込み中に切り替え
+                    // フィルタ済画像リストをViewに反映
+                    self.images = filtered
+                    // 表示位置を先頭に
+                    self.currentIndex = 0
+                    // 拡大リセット
+                    self.scale = 1.0
+                    // オフセットリセット
+                    self.offset = .zero
+                    // サムネイルキャッシュをクリア
+                    self._thumbnailCache.removeAll()
+                    // 読み込み中に切り替え
+                    self.isLoading = true
                     
                     // 画像がない時は停止
                     if filtered.isEmpty {
@@ -158,19 +165,23 @@ class ImageViewerModel: ObservableObject {
                         return
                     }
                 }
-                
+                //リサイズしてサムネイルを作成
                 for url in filtered {
                     if let image = NSImage(contentsOf: url) {
+                        // 40x40のサイズにリサイズしてサムネイルを作成
                         let thumb = self.resizeImage(image: image, size: NSSize(width: 40, height: 40))
                         DispatchQueue.main.async {
-                            self.setThumbnail(thumb, for: url) // サムネイルを設定
+                            // サムネイルを設定
+                            self.setThumbnail(thumb, for: url)
                         }
                     }
-                    Thread.sleep(forTimeInterval: 0.01) // 負荷軽減のために少し待つ
+                    // 負荷軽減のために少し待つ
+                    Thread.sleep(forTimeInterval: 0.01)
                 }
-                
+    
                 DispatchQueue.main.async {
-                    self.isLoading = false // 読み込み終了
+                    // 読み込み終了
+                    self.isLoading = false
                 }
             }
         }
@@ -178,69 +189,68 @@ class ImageViewerModel: ObservableObject {
     // リサイズ
     func resizeImage(image: NSImage, size: NSSize) -> NSImage {
         guard let rep = image.bestRepresentation(for: NSRect(origin: .zero, size: size), context: nil, hints: nil) else {
-            return image // リサイズできない場合は元画像を返す
+            // リサイズできない場合は元画像を返す
+            return image
         }
         let resizedImage = NSImage(size: size)
-        resizedImage.lockFocus() // 描画開始
-        rep.draw(in: NSRect(origin: .zero, size: size)) // 指定サイズに描画
-        resizedImage.unlockFocus() // 描画終了
+        // 描画開始
+        resizedImage.lockFocus()
+        // 指定サイズに描画
+        rep.draw(in: NSRect(origin: .zero, size: size))
+        // 描画終了
+        resizedImage.unlockFocus()
         return resizedImage
     }
-    // 見開き時のページ１
+    // 2つの画像URL（current, next）を横に合成して、1枚の見開き画像を生成する関数
     func makeSpreadImage(current: URL, next: URL?) -> NSImage? {
+        // current の画像を読み込み（必須）し、next の画像はオプショナルで読み込む
         guard let img1 = NSImage(contentsOf: current),
               let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
+            // どちらかが読み込めなければ処理中止
             return nil
         }
-        
+        // 横幅は2枚分を加算、高さはどちらか高い方を使用（高さの合成はしない）
         let totalWidth = img1.size.width + img2.size.width
         let maxHeight = max(img1.size.height, img2.size.height)
+        // 合成後の画像サイズを設定（横に2枚分、縦は高い方）
         let size = NSSize(width: totalWidth, height: maxHeight)
-        
+        // 新しい空のNSImageを作成（この中に合成画像を描く）
         let newImage = NSImage(size: size)
+        // 描画を開始（この時点で描画コンテキストが開かれる）
         newImage.lockFocus()
+        // img1（current）を左側（x=0）に描画
         img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        // img2（next）を右側（x=img1の幅）に描画
         img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        // 描画を終了（描画コンテキストを閉じる）
         newImage.unlockFocus()
-        
+        // 合成結果の画像を返す
         return newImage
     }
-    // 見開き時のページ2
-    //    func makeSpreadImagesec(current: URL, next: URL?) -> NSImage? {
-    //        guard let img1 = NSImage(contentsOf: current),
-    //              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
-    //            return nil
-    //        }
-    //
-    //        let totalWidth = img1.size.width + img2.size.width
-    //        let maxHeight = max(img1.size.height, img2.size.height)
-    //        let size = NSSize(width: totalWidth, height: maxHeight)
-    //
-    //        let newImage = NSImage(size: size)
-    //        newImage.lockFocus()
-    //        img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-    //        img1.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-    //
-    //        newImage.unlockFocus()
-    //
-    //        return newImage
-    //    }
 }
 
-
-// MARK: ── PageControllerView
+// MARK: PageControllerView
 struct PageControllerView: NSViewControllerRepresentable {
-    @ObservedObject var model: ImageViewerModel            // モデルの状態を監視し、UIと同期させる
-    let holder: ControllerHolder                           // 外部からNSPageControllerを操作するためのホルダー
+    // モデルの状態を監視し、UIと同期させる
+    @ObservedObject var model: ImageViewerModel
+    // 外部からNSPageControllerを操作するためのホルダー
+    let holder: ControllerHolder
     
     func makeNSViewController(context: Context) -> NSPageController {
-        let pc = NSPageController()                        // NSPageControllerインスタンス生成
-        holder.controller = pc                             // ホルダーに保持させて外部から操作可能に
-        pc.delegate = context.coordinator                  // デリゲートにCoordinatorをセット
-        pc.arrangedObjects = model.images                  // ページに表示する画像URLリストを設定
-        pc.transitionStyle = .horizontalStrip              // 横スライド式のページ遷移スタイル
-        pc.selectedIndex = model.currentIndex              // 現在の画像インデックスを初期設定
-        return pc                                          // 作成したページコントローラーを返す
+        // NSPageControllerインスタンス生成
+        let pc = NSPageController()
+        // ホルダーに保持させて外部から操作可能に
+        holder.controller = pc
+        // デリゲートにCoordinatorをセット
+        pc.delegate = context.coordinator
+        // ページに表示する画像URLリストを設定
+        pc.arrangedObjects = model.images
+        // 横スライド式のページ遷移スタイル
+        pc.transitionStyle = .horizontalStrip
+        // 現在の画像インデックスを初期設定
+        pc.selectedIndex = model.currentIndex
+        // 作成したページコントローラーを返す
+        return pc
     }
     
     func updateNSViewController(_ pc: NSPageController, context: Context) {
@@ -251,18 +261,22 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // 選択中のインデックスをViewModelと同期
         if pc.selectedIndex != model.currentIndex {
-            pc.completeTransition() // 既存のトランジションを完了（同期ミス対策）
-            pc.selectedIndex = model.currentIndex // インデックスを更新
+            // 既存のトランジションを完了（同期ミス対策）
+            pc.completeTransition()
+            // インデックスを更新
+            pc.selectedIndex = model.currentIndex
         }
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self) // Coordinator（デリゲート）を生成
+        // Coordinator（デリゲート）を生成
+        Coordinator(parent: self)
     }
     
-    // MARK: ── Coordinatorクラス（NSPageControllerDelegate対応）
+    // MARK: Coordinatorクラス（NSPageControllerDelegate対応）
     class Coordinator: NSObject, NSPageControllerDelegate {
-        let parent: PageControllerView // 親View構造体への参照
+        // 親View構造体への参照
+        let parent: PageControllerView
         
         init(parent: PageControllerView) {
             self.parent = parent
@@ -270,12 +284,15 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // ページ毎のViewController（画像ビュー）を生成
         func pageController(_ pc: NSPageController, viewControllerForIdentifier _: String) -> NSViewController {
+            // 画像表示用View
             let vc = NSViewController()
-            let iv = NSImageView()                             // 画像表示用View
-            iv.imageScaling = .scaleProportionallyUpOrDown    // 比率維持しながら拡大縮小
-            iv.autoresizingMask = [.width, .height]           // 親に合わせてリサイズ
-            iv.wantsLayer = true                              // レイヤーを有効化（変形用）
-            
+            let iv = NSImageView()
+            // 比率維持しながら拡大縮小
+            iv.imageScaling = .scaleProportionallyUpOrDown
+            // 親に合わせてリサイズ
+            iv.autoresizingMask = [.width, .height]
+            // レイヤーを有効化（変形用）
+            iv.wantsLayer = true
             // ジェスチャ対応（拡大・パン・ダブルクリック）
             iv.addGestureRecognizer(NSMagnificationGestureRecognizer(target: self, action: #selector(handlePinch(_:))))
             let dbl = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick(_:)))
@@ -291,198 +308,183 @@ struct PageControllerView: NSViewControllerRepresentable {
             "ImageVC" // 固定文字列で識別
         }
         
-        // ページ準備（画像の読み込みと初期設定）
+        // ページが表示される直前に呼ばれる処理（画像の読み込みや表示設定などを行う）
         func pageController(_ pc: NSPageController, prepare vc: NSViewController, with object: Any?) {
-            //            guard let url = object as? URL,
-            //                  let iv = vc.view as? NSImageView,
-            //                  let layer = iv.layer else { return }
-            //
-            //            //iv.image = NSImage(contentsOf: url) // 対象画像をロード
-            //
-            //            //print(parent.model.spreadViewMode)
-            //
-            //            let idx = parent.model.images.firstIndex(of: url) ?? 0
-            //            let nextURL = (idx + 1 < parent.model.images.count) ? parent.model.images[idx + 1] : nil
-            //
-            //            print(parent.model.spreadViewMode)
-            //            print(nextURL as Any)
-            
-            //iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
-            
-            //            switch parent.model.spreadViewMode {
-            //            case .none:
-            //                iv.image = NSImage(contentsOf: url)
-            //                return
-            //            case .previousLeft:
-            //                iv.image = parent.model.makeSpreadImagesec(current: url, next: nextURL)
-            //                return
-            //            case .nextRight:
-            //                iv.image = parent.model.makeSpreadImage(current: url, next: nextURL)
-            //                return
-            //            }
-            
-            
-            ///////////////////
+            // 表示対象の画像URLと、ViewControllerのNSImageView・そのレイヤーを取得
             guard let url = object as? URL,
                   let iv = vc.view as? NSImageView,
+                  // いずれか取得できなければ表示処理中止
                   let layer = iv.layer else { return }
-            
+
+            // ViewModel（画像一覧や状態管理）を取得
             let model = parent.model
+            // 現在表示しようとしている画像のインデックス
             let index = model.images.firstIndex(of: url) ?? 0
-            
-            // 差し替え画像があればそれを優先表示
+
+            // temporaryImageOverrides に登録された「一時的な合成画像」があればそちらを優先して表示
             if let override = model.temporaryImageOverrides[url] {
                 iv.image = override
             } else {
+                // 通常の画像を読み込んで表示
                 iv.image = NSImage(contentsOf: url)
             }
-            ///////////////////
-            
-            
-            
-            
-            
-            
-            layer.anchorPoint = CGPoint(x: 0.5, y: 0.5) // 拡大/縮小の中心を設定
-            layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY) // 中央に配置
-            layer.setAffineTransform(.identity) // 変形リセット
-            
+
+            // ▼ 以下は表示ビューの初期化処理（変形リセットなど） ▼
+            // 拡大/縮小や回転の中心点を画像中央に設定（レイヤーのアンカーポイント）
+            layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            // 画像ビュー（iv）の中央に画像レイヤーを配置
+            layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY)
+            // 変形をすべてリセット（スケール・回転・移動など）
+            layer.setAffineTransform(.identity)
+            // メインスレッドで、拡大率や移動オフセットの状態をリセット（SwiftUI側と同期）
             DispatchQueue.main.async {
-                self.parent.model.scale = 1.0     // 拡大率リセット
-                self.parent.model.offset = .zero  // オフセットリセット
+                // 拡大率リセット
+                self.parent.model.scale = 1.0
+                // パン（移動）リセット
+                self.parent.model.offset = .zero
             }
         }
+
         
         // 遷移完了時にインデックスをViewModelに反映
         func pageController(_ pc: NSPageController, didTransitionTo object: Any) {
             if let idx = pc.arrangedObjects.firstIndex(where: { ($0 as? URL) == (object as? URL) }) {
                 DispatchQueue.main.async {
-                    self.parent.model.currentIndex = idx // インデックスを更新
-                    self.parent.model.clearOverrides() // 合成を解除
+                    // インデックスを更新
+                    self.parent.model.currentIndex = idx
+                    // 合成を解除
+                    self.parent.model.clearOverrides()
                     
                 }
             }
         }
-        
-        
         
         // 拡大処理（ピンチ）
         @objc func handlePinch(_ g: NSMagnificationGestureRecognizer) {
             // 対象のビューが NSImageView であることを確認し、CALayer を取得
             guard let iv = g.view as? NSImageView,
                   let layer = iv.layer else { return }
-            
             // ピンチ操作の発生位置を取得（ビュー内座標）
             let loc = g.location(in: iv)
-            
             // ビューのサイズ（frame ではなく bounds）を取得
             let b = iv.bounds
             
+            // メインスレッドでUIの状態を更新
             DispatchQueue.main.async {
                 // ピンチの中心を基準とした拡大を行うため、アンカーポイントを算出
                 // 画像内のどの位置を中心に拡大縮小するか（0.0〜1.0）
+                // 横方向の比率（0.0〜1.0）
                 let ax = loc.x / b.width
+                // 縦方向の比率（0.0〜1.0）
                 let ay = loc.y / b.height
-                
                 // layer の拡大縮小の基準点を変更（デフォルトは中央 0.5, 0.5）
                 layer.anchorPoint = CGPoint(x: ax, y: ay)
-                
                 // 実際に anchor を中心に変形が適用されるよう位置を調整
                 layer.position = CGPoint(x: loc.x, y: loc.y)
-                
                 // 拡大率を更新：現在のスケール × ピンチ倍率（+1される点に注意）
                 let ns = self.parent.model.scale * (1 + g.magnification)
-                
                 // スケールの範囲を制限（例：0.5〜5倍）
                 self.parent.model.scale = min(max(ns, 0.5), 5.0)
-                
                 // 計算した変形をビューに反映
                 self.applyTransform(iv: iv)
-                
                 // このジェスチャーでの拡大率は使い終わったのでリセット
                 g.magnification = 0
             }
         }
         
-        // ダブルクリックで拡大・リセット
+        // ダブルクリック時に拡大・縮小を切り替える処理（段階的ズーム操作）
         @objc func handleDoubleClick(_ g: NSClickGestureRecognizer) {
+            // ジェスチャーの対象が NSImageView かどうか確認し、レイヤーを取得
             guard let iv = g.view as? NSImageView,
                   let layer = iv.layer else { return }
+            // ダブルクリックが発生した位置（ビュー内座標）を取得
             let loc = g.location(in: iv)
+            // ビューのサイズを取得（座標比率を計算するために使用）
             let b = iv.bounds
-            
+
+            // メインスレッドでUIの状態を更新
             DispatchQueue.main.async {
+                // アンカーポイント（拡大・縮小の中心）をクリック位置の比率で設定
+                // 横方向の比率（0.0〜1.0）
                 let ax = loc.x / b.width
+                // 縦方向の比率（0.0〜1.0）
                 let ay = loc.y / b.height
                 layer.anchorPoint = CGPoint(x: ax, y: ay)
+                // レイヤーの位置をクリック位置に合わせて移動（見た目の中心点がズレないよう調整）
                 layer.position = CGPoint(x: loc.x, y: loc.y)
-                
-                // 拡大の段階的切り替え
+                // 現在の拡大率に応じて段階的に切り替え（等倍 → 2倍 → 4倍 → リセット）
                 switch self.parent.model.scale {
-                case ..<1.5: self.parent.model.scale = 2.0
-                case ..<3.0: self.parent.model.scale = 4.0
+                case ..<1.5:
+                    // 1.0 → 2.0 に拡大
+                    self.parent.model.scale = 2.0
+                case ..<3.0:
+                    // 2.0 → 4.0 にさらに拡大
+                    self.parent.model.scale = 4.0
                 default:
+                    // それ以上の場合はリセット（等倍に戻す）
                     self.parent.model.scale = 1.0
+                    // パン（移動）もリセット
                     self.parent.model.offset = .zero
+                    // 中心点を画面中央に戻す（リセット時は中央から拡大）
                     layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
                     layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY)
                 }
+                // 拡大率や位置などの変形をレイヤーに反映
+                self.applyTransform(iv: iv)
+            }
+        }
+
+        // パン（画像をドラッグで移動）操作を処理する関数
+        @objc func handlePan(_ g: NSPanGestureRecognizer) {
+            // 対象のビューが NSImageView であることを確認
+            guard let iv = g.view as? NSImageView else { return }
+            // ジェスチャーによる移動量（translation）を取得（ビュー内座標系）
+            let tr = g.translation(in: iv) // CGSize型（x:横方向, y:縦方向）
+            // 現在の移動量をリセット（累積しないように0に戻す）
+            g.setTranslation(.zero, in: iv)
+            
+            // メインスレッドでUIの状態（オフセット）を更新
+            DispatchQueue.main.async {
+                // 横方向の移動量を現在のオフセットに加算
+                self.parent.model.offset.width += tr.x
+                // 縦方向の移動量もオフセットに加算
+                self.parent.model.offset.height += tr.y
+                // 移動をレイヤーに反映（画像を実際に動かす）
                 self.applyTransform(iv: iv)
             }
         }
         
-        // パン（画像移動）
-        @objc func handlePan(_ g: NSPanGestureRecognizer) {
-            guard let iv = g.view as? NSImageView else { return }
-            let tr = g.translation(in: iv)
-            g.setTranslation(.zero, in: iv)
-            
-            DispatchQueue.main.async {
-                self.parent.model.offset.width += tr.x
-                self.parent.model.offset.height += tr.y
-                self.applyTransform(iv: iv)
-            }
-        }
-        // パン（画像移動）
+        // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
             // 現在のスケール（拡大率）を取得（例: 1.0 = 等倍, 2.0 = 2倍拡大）
             let s = parent.model.scale
-            
             // 現在のオフセット（パンによる移動量）を取得（CGSize型、x/y 方向の移動）
             let o = parent.model.offset
-            
             // 単位行列（変形なしの状態）を初期値として変形を構築
             var t = CGAffineTransform.identity
-            
             // 平行移動を先に適用（x方向 o.width, y方向 o.height）
             t = t.translatedBy(x: o.width, y: o.height)
-            
             // スケーリング（拡大縮小）を適用（x,y 同率拡大）
             t = t.scaledBy(x: s, y: s)
-            
             // 計算した変形行列を NSImageView の CALayer に反映
             iv.layer?.setAffineTransform(t)
         }
-        
     }
-    
     // PageControllerを外部から操作するためのホルダークラス
     class ControllerHolder { weak var controller: NSPageController? }
 }
 
-// MARK: ── キーボード左右キー入力を受け取る NSView（NSView のサブクラス）
+// MARK: キーボード左右キー入力を受け取る NSView（NSView のサブクラス）
 class KeyHandlingView: NSView {
     // キーイベントを処理するクロージャ（親Viewから渡される）
     var onKey: (NSEvent) -> Bool = { _ in false }
-    
     // このビューがファーストレスポンダ（キーイベントの受け取り手）になれるようにする
     override var acceptsFirstResponder: Bool { true }
-    
     // このビューがウィンドウに追加された時にファーストレスポンダにする
     override func viewDidMoveToWindow() {
-        window?.makeFirstResponder(self) // 自身をキーイベントの受け手に設定
+        // 自身をキーイベントの受け手に設定
+        window?.makeFirstResponder(self)
     }
-    
     // キーが押された時に呼ばれる
     override func keyDown(with event: NSEvent) {
         // クロージャで処理されなければスーパークラスにフォールバック
@@ -493,15 +495,14 @@ class KeyHandlingView: NSView {
 }
 
 // SwiftUI から macOS の NSView を埋め込むラッパー
-// MARK: ── キーボードイベント（特に←→キー）を処理して、NSPageController のページ移動を可能にする
+// MARK: キーボードイベント（特に←→キー）を処理して、NSPageController のページ移動を可能にする
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
     // NSPageController へのアクセス用ホルダ（弱参照）
     let holder: PageControllerView.ControllerHolder
-    
     // 実際の NSView（KeyHandlingView）を生成する
     func makeNSView(context: Context) -> NSView {
-        let v = KeyHandlingView() // NSView のサブクラス（カスタム）を作成
-        
+        // NSView のサブクラス（カスタム）を作成
+        let v = KeyHandlingView()
         // キーイベントが発生したときの処理を定義
         v.onKey = { ev in
             guard let pc = holder.controller else { return false }
@@ -510,78 +511,94 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             
             switch ev.keyCode {
             case 123: // ← 左キー
+                //先頭の画像か判定
                 if currentIndex > 0 {
                     pc.navigateBack(nil)
                 } else {
+                    //アラートようにv.windowを渡す
                     if let win = v.window {
+                        //アラート関数を呼び出す
                         showAutoDismissAlert(message: "先頭の画像です", in: win)
                     }                }
                 return true
             case 124: // → 右キー
+                //最後の画像か判定
                 if currentIndex < count - 1 {
                     pc.navigateForward(nil)
                 } else {
+                    //アラートようにv.windowを渡す
                     if let win = v.window {
+                        //アラート関数を呼び出す
                         showAutoDismissAlert(message: "最後の画像です", in: win)
                     }
                 }
                 return true
-                
             default:
                 return false
             }
         }
-        return v // NSView を SwiftUI に返す
+        // NSView を SwiftUI に返す
+        return v
     }
     
-    // 通知用ウィンドウを作成（タイトルバーなし）
+    // アラート関数：1.5秒で自動的に消える通知ウィンドウを表示（タイトルバーなし）
     func showAutoDismissAlert(message: String, in window: NSWindow) {
+
+        // 通知用の小さなウィンドウを生成（タイトルバーなし、透明）
         let alertWindow = NSWindow(
+            // サイズ指定
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 80),
+            // 枠なしウィンドウ
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
-        
+        // ウィンドウを閉じたときに解放しないように設定（使い回し可能）
         alertWindow.isReleasedWhenClosed = false
+        // 他のウィンドウの上に浮かぶように設定
         alertWindow.level = .floating
+        // 背景透明にする設定
         alertWindow.backgroundColor = .clear
         alertWindow.isOpaque = false
+        // ドロップシャドウを表示
         alertWindow.hasShadow = true
+        // マウス操作を無効化（背後のUIと干渉しないようにする）
         alertWindow.ignoresMouseEvents = true
+        // 一時的なウィンドウとして扱い、Mission Control などでも浮いたまま表示
         alertWindow.collectionBehavior = [.transient]
-        
+        // --- メッセージ用ラベル（非編集の NSTextField）を作成
         let textField = NSTextField(labelWithString: message)
         textField.alignment = .center
         textField.font = NSFont.systemFont(ofSize: 16, weight: .medium)
         textField.textColor = NSColor.white
         textField.backgroundColor = .clear
         textField.drawsBackground = false
-        
+        // --- 背景ビュー（黒半透明 + 角丸）を作成
         let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 80))
         contentView.wantsLayer = true
         contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
         contentView.layer?.cornerRadius = 14
+        // ラベルの配置（周囲に余白を入れて中央寄せ）
         textField.frame = contentView.bounds.insetBy(dx: 20, dy: 20)
         contentView.addSubview(textField)
-        
+        // アラートウィンドウの中身として設定
         alertWindow.contentView = contentView
-        
-        // 💡 呼び出し元のウィンドウ中心に表示
+        // 呼び出し元ウィンドウの中央にアラートウィンドウを配置
         let parentFrame = window.frame
         let alertSize = alertWindow.frame.size
         let x = parentFrame.origin.x + (parentFrame.size.width - alertSize.width) / 2
         let y = parentFrame.origin.y + (parentFrame.size.height - alertSize.height) / 2
         alertWindow.setFrameOrigin(NSPoint(x: x, y: y))
-        
+        // 初期状態は透明（アニメーションでフェードイン）
         alertWindow.alphaValue = 0.0
+        // ウィンドウを画面上に表示
         alertWindow.makeKeyAndOrderFront(nil)
-        
+        // フェードインのアニメーション（0.2秒で不透明に）
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             alertWindow.animator().alphaValue = 1.0
         }
-        
+        // 1.5秒後にフェードアウトして自動的に閉じる
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
@@ -591,74 +608,75 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             })
         }
     }
-    
     // SwiftUI の View 更新タイミングで呼ばれる（ここでは何もしない）
     func updateNSView(_ nsView: NSView, context: Context) {
         // 状態更新が必要なときの処理を書くが、ここでは不要
     }
 }
 
-// MARK: ── ウィンドウリサイズを検出
+// MARK: ウィンドウリサイズ
+//検出後、サイズ変更終了後にコールバックを実行する View
 struct WindowResizeObserver: NSViewRepresentable {
+    // リサイズ完了後に呼び出されるクロージャ（呼び出し元で処理を指定）
     var onResizeEnded: () -> Void
-    
+    // SwiftUI 用 Coordinator クラス（リサイズ処理を管理）
     class Coordinator {
+        // DispatchWorkItem を使ってリサイズ後の遅延実行を管理
         var workItem: DispatchWorkItem?
     }
-    
+    // Coordinator のインスタンスを生成
     func makeCoordinator() -> Coordinator {
         Coordinator()
     }
-    
+    // SwiftUI → NSView に変換する本体
     func makeNSView(context: Context) -> NSView {
-        let view = NSView()
+        let view = NSView() // 空のNSViewを生成（表示は不要）
+        // 非同期でウィンドウが取得できるタイミングを待って処理を開始
         DispatchQueue.main.async {
             if let window = view.window {
+                // NSWindow のリサイズ通知を監視
                 NotificationCenter.default.addObserver(
-                    forName: NSWindow.didResizeNotification,
+                    forName: NSWindow.didResizeNotification, // ウィンドウがリサイズされたとき
                     object: window,
                     queue: .main
                 ) { _ in
-                    // 以前の処理をキャンセル
+                    // 前回の処理が残っていればキャンセル（連続イベント対策）
                     context.coordinator.workItem?.cancel()
-                    
-                    // 一定時間後に onResizeEnded を呼び出す
+                    // 一定時間後にリサイズ終了として onResizeEnded を実行する
                     let item = DispatchWorkItem {
                         onResizeEnded()
                     }
-                    
+                    // 現在の WorkItem を保存
                     context.coordinator.workItem = item
+                    // 0.3秒後に処理を実行（リサイズが続かなければ）
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
                 }
             }
         }
+        // 作成した NSView を返す（画面上には見えない）
         return view
     }
+    // SwiftUI による View 更新時の処理（今回は不要なので空実装）
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 
-
-
-// MARK: ── メインビュー（SwiftUIのメイン画面）
-
+// MARK: ContentView SwiftUIのメイン
 struct ContentView: View {
     //モデル（画像一覧や状態）を監視
     @ObservedObject var model: ImageViewerModel
-    
     //PageControllerのインスタンス保持用（ビューの再構築を避ける）
     private let holder = PageControllerView.ControllerHolder()
-    
     //表示内容の強制リフレッシュ用バインディング
     @Binding var viewerID: UUID
     
+    //画面構成
     var body: some View {
-        VStack(spacing: 3) { // 全体を縦方向に積む（余白3pt）
-            
+        // 全体を縦方向に積む（余白3pt）
+        VStack(spacing: 3) {
             // --- ヘッダーエリア（フォルダ選択 + サムネイル + インジケータ）
             HStack(spacing: 6) {
-                
-                //フォルダ選択ボタン
+                // --- フォルダ選択ボタン
                 Button("フォルダを選択") {
                     // macOS の標準フォルダ選択ダイアログ
                     let panel = NSOpenPanel()
@@ -672,15 +690,14 @@ struct ContentView: View {
                         model.currentIndex = 0
                         model.scale = 1.0
                         model.offset = .zero
-                        
                         //画像読み込み（非同期でサムネイルも生成）
                         model.loadImagesFromDirectory(url)
-                        
                         //viewerIDを更新してPageControllerをリフレッシュ
                         viewerID = UUID()
                     }
                 }
-                .controlSize(.small) // macOS風小サイズボタン
+                // macOS風小サイズボタン
+                .controlSize(.small)
                 
                 // --- サムネイル表示エリア
                 if !model.images.isEmpty {
@@ -732,23 +749,23 @@ struct ContentView: View {
                     }
                 }
                 
-                //現在インデックス/総画像数 の表示
+                // --- 総画像数 の表示エリア
                 Text(model.images.isEmpty
                      ? "画像なし"
                      : "\(model.currentIndex + 1) / \(model.images.count)")
                 .font(.caption)
                 .controlSize(.small)
                 
-                //見開き表示モードを切り替えます
+                // --- 見開き表示モードを切り替えボタン
                 Button(action: {
                     let idx = model.currentIndex
                     guard idx > 0 else { return }
                     let current = model.images[idx]
                     let previous = model.images[idx - 1]
                     if let combined = model.makeSpreadImage(current: current, next: previous) {
-                        //if let combined = model.makeSpreadImage(current: previous, next: current) {
+                        //画像を上書き
                         model.overrideImage(for: current, with: combined)
-                        // ✅ SwiftUI側からViewを再生成
+                        //SwiftUI側からViewを再生成
                         viewerID = UUID()
                     }
                 }) {
@@ -756,17 +773,13 @@ struct ContentView: View {
                 }
                 .controlSize(.small)
                 .help("この画像だけ一時的に見開きで表示します")
-                
-                
-                
-                
-                
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(minHeight: 28)
             
-            Divider() // 水平の境界線
+            // --- 水平の境界線
+            Divider()
             
             // --- メイン画像表示エリア
             if model.images.isEmpty {
@@ -783,19 +796,18 @@ struct ContentView: View {
                         .allowsHitTesting(false)
                     //ウィンドウリサイズを検出して viewerID を更新
                     WindowResizeObserver {
-                        viewerID = UUID() //リサイズ終了後に一度だけ再構築
+                        //リサイズ終了後に一度だけ再構築
+                        viewerID = UUID()
                         //print("リサイズ終了後に一度だけ再構築")
                     }
                     .frame(width: 0, height: 0)
                 }
-                .id(viewerID) //viewerID変更でViewを強制更新
+                //viewerID変更でViewを強制更新
+                .id(viewerID)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: 600, minHeight: 400) // ウィンドウ最小サイズ
+        // ウィンドウ最小サイズ
+        .frame(minWidth: 600, minHeight: 400)
     }
 }
-
-
-
-
