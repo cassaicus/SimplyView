@@ -332,7 +332,7 @@ struct PageControllerView: NSViewControllerRepresentable {
             // ViewModel（画像一覧や状態管理）を取得
             let model = parent.model
             // 現在表示しようとしている画像のインデックス
-            let index = model.images.firstIndex(of: url) ?? 0
+            _ = model.images.firstIndex(of: url) ?? 0
 
             // temporaryImageOverrides に登録された「一時的な合成画像」があればそちらを優先して表示
             if let override = model.temporaryImageOverrides[url] {
@@ -450,21 +450,41 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // パン（画像をドラッグで移動）操作を処理する関数（制限なし）
         @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
-            // パン操作の対象が NSImageView であることを確認
-            guard let imageView = gesture.view as? NSImageView else { return }
-            // ジェスチャーで発生した移動量を取得（ビューの座標系）
-            let dragDelta = gesture.translation(in: imageView)
-            // 次回のジェスチャーのために移動量をリセット
+            guard let imageView = gesture.view as? NSImageView,
+                  let window = imageView.window,
+                  let contentView = window.contentView,
+                  let layer = imageView.layer else { return }
+
+            let translation = gesture.translation(in: imageView)
             gesture.setTranslation(.zero, in: imageView)
-            // UI 更新はメインスレッドで行う
+
             DispatchQueue.main.async {
-                // モデルの参照（オフセット情報など）
-                let model = self.parent.model
-                // 移動量を現在のオフセットに加算して、新しいオフセットを作成
-                model.offset.width += dragDelta.x
-                model.offset.height += dragDelta.y
-                // 新しいオフセットを画像表示に反映
-                self.applyTransform(iv: imageView)
+                var proposedOffset = CGSize(
+                    width: self.parent.model.offset.width + translation.x,
+                    height: self.parent.model.offset.height + translation.y
+                )
+                
+                // 仮 offset を適用して transform
+                let originalTransform = layer.affineTransform()
+                var transform = originalTransform
+                transform.tx = proposedOffset.width
+                transform.ty = proposedOffset.height
+                
+                // 仮 transform を imageView に適用
+                layer.setAffineTransform(transform)
+                let transformedFrame = layer.frame
+                layer.setAffineTransform(originalTransform) // 元に戻す
+
+                let contentBounds = contentView.bounds
+
+                if contentBounds.intersects(transformedFrame) {
+                    // はみ出してないので offset 更新
+                    self.parent.model.offset = proposedOffset
+                    self.applyTransform(iv: imageView)
+                } else {
+                    // はみ出すので移動しない
+                    NSSound.beep()
+                }
             }
         }
 
