@@ -93,6 +93,11 @@ class ImageViewerModel: ObservableObject {
     // 読み込み中かどうか（インジケータ制御などで利用）
     @Published var isLoading = false
     
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 新規追加：現在のアンカーポイントを保持（defaultは中央）
+    //@Published var anchorPoint: CGPoint = CGPoint(x: 0.5, y: 0.5)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
     //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
     //上書き
@@ -342,6 +347,8 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.parent.model.scale = 1.0
                 // パン（移動）リセット
                 self.parent.model.offset = .zero
+                //anchorPointリセット
+                //self.parent.model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             }
         }
 
@@ -354,7 +361,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                     self.parent.model.currentIndex = idx
                     // 合成を解除
                     self.parent.model.clearOverrides()
-                    
                 }
             }
         }
@@ -433,27 +439,27 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.applyTransform(iv: iv)
             }
         }
-
-        // パン（画像をドラッグで移動）操作を処理する関数
-        @objc func handlePan(_ g: NSPanGestureRecognizer) {
-            // 対象のビューが NSImageView であることを確認
-            guard let iv = g.view as? NSImageView else { return }
-            // ジェスチャーによる移動量（translation）を取得（ビュー内座標系）
-            let tr = g.translation(in: iv) // CGSize型（x:横方向, y:縦方向）
-            // 現在の移動量をリセット（累積しないように0に戻す）
-            g.setTranslation(.zero, in: iv)
-            
-            // メインスレッドでUIの状態（オフセット）を更新
+        
+        // パン（画像をドラッグで移動）操作を処理する関数（制限なし）
+        @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
+            // パン操作の対象が NSImageView であることを確認
+            guard let imageView = gesture.view as? NSImageView else { return }
+            // ジェスチャーで発生した移動量を取得（ビューの座標系）
+            let dragDelta = gesture.translation(in: imageView)
+            // 次回のジェスチャーのために移動量をリセット
+            gesture.setTranslation(.zero, in: imageView)
+            // UI 更新はメインスレッドで行う
             DispatchQueue.main.async {
-                // 横方向の移動量を現在のオフセットに加算
-                self.parent.model.offset.width += tr.x
-                // 縦方向の移動量もオフセットに加算
-                self.parent.model.offset.height += tr.y
-                // 移動をレイヤーに反映（画像を実際に動かす）
-                self.applyTransform(iv: iv)
+                // モデルの参照（オフセット情報など）
+                let model = self.parent.model
+                // 移動量を現在のオフセットに加算して、新しいオフセットを作成
+                model.offset.width += dragDelta.x
+                model.offset.height += dragDelta.y
+                // 新しいオフセットを画像表示に反映
+                self.applyTransform(iv: imageView)
             }
         }
-        
+
         // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
             // 現在のスケール（拡大率）を取得（例: 1.0 = 等倍, 2.0 = 2倍拡大）
@@ -692,6 +698,7 @@ struct ContentView: View {
                         model.currentIndex = 0
                         model.scale = 1.0
                         model.offset = .zero
+                        //model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
                         //画像読み込み（非同期でサムネイルも生成）
                         model.loadImagesFromDirectory(url)
                         //viewerIDを更新してPageControllerをリフレッシュ
