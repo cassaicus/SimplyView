@@ -93,13 +93,11 @@ class ImageViewerModel: ObservableObject {
     // 読み込み中かどうか（インジケータ制御などで利用）
     @Published var isLoading = false
     
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 新規追加：現在のアンカーポイントを保持（defaultは中央）
-    //@Published var anchorPoint: CGPoint = CGPoint(x: 0.5, y: 0.5)
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
     //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
+    // 見開きの制御
+    @Published var spreadImageRL = false
+    
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
@@ -223,10 +221,20 @@ class ImageViewerModel: ObservableObject {
         let newImage = NSImage(size: size)
         // 描画を開始（この時点で描画コンテキストが開かれる）
         newImage.lockFocus()
-        // img1（current）を左側（x=0）に描画
-        img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-        // img2（next）を右側（x=img1の幅）に描画
-        img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        //左右を入れ替え
+        if spreadImageRL {
+            // img2（current）を左側（x=0）に描画
+            img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            // img1（next）を右側（x=img2の幅）に描画
+            img1.draw(at: NSPoint(x: img2.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            spreadImageRL = false
+        } else {
+            // img1（current）を左側（x=0）に描画
+            img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            // img2（next）を右側（x=img1の幅）に描画
+            img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            spreadImageRL = true
+        }
         // 描画を終了（描画コンテキストを閉じる）
         newImage.unlockFocus()
         // 合成結果の画像を返す
