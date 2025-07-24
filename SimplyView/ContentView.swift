@@ -448,18 +448,22 @@ struct PageControllerView: NSViewControllerRepresentable {
             }
         }
         
-        // パン（画像をドラッグで移動）操作を処理する関数（制限なし）
+        // パン（画像をドラッグで移動）操作を処理する関数
         @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
             guard let imageView = gesture.view as? NSImageView,
                   let window = imageView.window,
                   let contentView = window.contentView,
+                  let displayArea = imageView.superview,// PageControllerView内の画像エリア
                   let layer = imageView.layer else { return }
+                
+
+            let displayBoundsInWindow = displayArea.convert(displayArea.bounds, to: nil)
 
             let translation = gesture.translation(in: imageView)
             gesture.setTranslation(.zero, in: imageView)
 
             DispatchQueue.main.async {
-                var proposedOffset = CGSize(
+                let proposedOffset = CGSize(
                     width: self.parent.model.offset.width + translation.x,
                     height: self.parent.model.offset.height + translation.y
                 )
@@ -467,27 +471,109 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // 仮 offset を適用して transform
                 let originalTransform = layer.affineTransform()
                 var transform = originalTransform
+                
                 transform.tx = proposedOffset.width
                 transform.ty = proposedOffset.height
                 
-                // 仮 transform を imageView に適用
-                layer.setAffineTransform(transform)
-                let transformedFrame = layer.frame
-                layer.setAffineTransform(originalTransform) // 元に戻す
+                let model = self.parent.model
+                if let image = imageView.image {
+                    let imageSize = image.size
+                    let zoomScale = model.scale
+                    
+                    // 拡大後の画像サイズ
+                    let zoomedImageWidth = imageSize.width * zoomScale
+                    let zoomedImageHeight = imageSize.height * zoomScale
+                    
+                    // ウィンドウと拡大画像のフィット比率（fitRatio は見かけ上の補正倍率）
+                    let fitRatio = min(displayBoundsInWindow.width / zoomedImageWidth,
+                                       displayBoundsInWindow.height / zoomedImageHeight)
+                    
+                    // 見かけ上の画像サイズ
+                    let displayedImageWidth = zoomedImageWidth * fitRatio * zoomScale
+                    let displayedImageHeight = zoomedImageHeight * fitRatio * zoomScale
+                    
+//                    print("displayBoundsInWindow \(displayBoundsInWindow)")
+//                    print("fitRatio \(fitRatio)")
+//                    print("zoomScale \(zoomScale)")
+//                    print("displayedImage \(displayedImageWidth) \(displayedImageHeight)")
+//                    print("transform \(transform.tx) \(transform.ty)")
+                    
+                    let halfWindowWidth = displayBoundsInWindow.width / 2
+                    let halfWindowHeight = displayBoundsInWindow.height / 2
+                    
+                    let halfImageWidth = displayedImageWidth / 2
+                    let halfImageHeight = displayedImageHeight / 2
 
-                let contentBounds = contentView.bounds
+                    // ベースのマージン（等倍基準）
+                    let baseMarginX = displayBoundsInWindow.width - halfWindowWidth - halfImageWidth
+                    let baseMarginY = displayBoundsInWindow.height - halfWindowHeight - halfImageHeight
 
-                if contentBounds.intersects(transformedFrame) {
-                    // はみ出してないので offset 更新
-                    self.parent.model.offset = proposedOffset
-                    self.applyTransform(iv: imageView)
-                } else {
-                    // はみ出すので移動しない
-                    NSSound.beep()
+                    // 拡大率に応じた追加マージン
+                    var additionalMarginX: CGFloat = 0.0
+                    var additionalMarginY: CGFloat = 0.0
+                    
+                    if zoomScale > 1.0 && zoomScale <= 2.0 {
+                        additionalMarginX = halfWindowWidth
+                        additionalMarginY = halfWindowHeight
+                    } else if zoomScale > 1.0 && zoomScale <= 3.0 {
+                        additionalMarginX = halfWindowWidth * 2
+                        additionalMarginY = halfWindowHeight * 2
+                    } else if zoomScale > 1.0 && zoomScale <= 4.0 {
+                        additionalMarginX = halfWindowWidth * 3
+                        additionalMarginY = halfWindowHeight * 3
+                    }
+
+//                    print("baseMarginX \(baseMarginX)")
+//                    print("additionalMarginX \(additionalMarginX)")
+                    
+                    // 画像の見かけ上サイズの10%を余白として設定（お好みで0.1 → 0.2などに変更可）
+                    let imageMarginX = displayedImageWidth * 0.1
+                    let imageMarginY = displayedImageHeight * 0.1
+                    // 方向に応じて transform.tx に補正値を加減
+                    if transform.tx > 0 {
+                        transform.tx += baseMarginX + additionalMarginX + imageMarginX
+                    } else {
+                        transform.tx -= baseMarginX + additionalMarginX + imageMarginX
+                    }
+                    // 方向に応じて transform.ty に補正値を加減
+                    if transform.ty > 0 {
+                        transform.ty += baseMarginY + additionalMarginY + imageMarginY + 84.0
+                    } else {
+                        transform.ty -= baseMarginY + additionalMarginY + imageMarginY
+                    }
+                    
+//                    print("re-transform \(transform.tx) \(transform.ty)")
+//                    print("    ")
+                    
+                    // 仮 transform を imageView に適用
+                    layer.setAffineTransform(transform)
+                    let transformedFrame = layer.frame
+                    layer.setAffineTransform(originalTransform) // 元に戻す
+                    
+                    let contentBounds = contentView.bounds
+                    
+                    if contentBounds.intersects(transformedFrame) {
+                        // はみ出してないので offset 更新
+                        self.parent.model.offset = proposedOffset
+                        self.applyTransform(iv: imageView)
+                    } else {
+                        // はみ出すので移動しない
+                        NSSound.beep()
+                    }
                 }
             }
         }
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
             // 現在のスケール（拡大率）を取得（例: 1.0 = 等倍, 2.0 = 2倍拡大）
