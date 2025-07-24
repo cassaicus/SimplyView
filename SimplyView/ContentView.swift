@@ -81,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 class ImageViewerModel: ObservableObject {
     // シングルトンインスタンス（外部から共有的にアクセス）
     static let shared = ImageViewerModel()
-
+    
     // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
     @Published var images: [URL] = []
     // 現在表示中の画像インデックス
@@ -140,7 +140,7 @@ class ImageViewerModel: ObservableObject {
             ) {
                 let filtered = urls
                     .filter { allowed.contains($0.pathExtension.lowercased()) }
-                    //Finder風の自然順ソート
+                //Finder風の自然順ソート
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -181,7 +181,7 @@ class ImageViewerModel: ObservableObject {
                     // 負荷軽減のために少し待つ
                     Thread.sleep(forTimeInterval: 0.01)
                 }
-    
+                
                 DispatchQueue.main.async {
                     // 読み込み終了
                     self.isLoading = false
@@ -328,12 +328,12 @@ struct PageControllerView: NSViewControllerRepresentable {
                   let iv = vc.view as? NSImageView,
                   // いずれか取得できなければ表示処理中止
                   let layer = iv.layer else { return }
-
+            
             // ViewModel（画像一覧や状態管理）を取得
             let model = parent.model
             // 現在表示しようとしている画像のインデックス
             _ = model.images.firstIndex(of: url) ?? 0
-
+            
             // temporaryImageOverrides に登録された「一時的な合成画像」があればそちらを優先して表示
             if let override = model.temporaryImageOverrides[url] {
                 iv.image = override
@@ -341,7 +341,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // 通常の画像を読み込んで表示
                 iv.image = NSImage(contentsOf: url)
             }
-
+            
             // ▼ 以下は表示ビューの初期化処理（変形リセットなど） ▼
             // 拡大/縮小や回転の中心点を画像中央に設定（レイヤーのアンカーポイント）
             layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
@@ -359,7 +359,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                 //self.parent.model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             }
         }
-
         
         // 遷移完了時にインデックスをViewModelに反映
         func pageController(_ pc: NSPageController, didTransitionTo object: Any) {
@@ -415,7 +414,7 @@ struct PageControllerView: NSViewControllerRepresentable {
             let loc = g.location(in: iv)
             // ビューのサイズを取得（座標比率を計算するために使用）
             let b = iv.bounds
-
+            
             // メインスレッドでUIの状態を更新
             DispatchQueue.main.async {
                 // アンカーポイント（拡大・縮小の中心）をクリック位置の比率で設定
@@ -455,13 +454,13 @@ struct PageControllerView: NSViewControllerRepresentable {
                   let contentView = window.contentView,
                   let displayArea = imageView.superview,// PageControllerView内の画像エリア
                   let layer = imageView.layer else { return }
-                
-
+            
+            
             let displayBoundsInWindow = displayArea.convert(displayArea.bounds, to: nil)
-
+            
             let translation = gesture.translation(in: imageView)
             gesture.setTranslation(.zero, in: imageView)
-
+            
             DispatchQueue.main.async {
                 let proposedOffset = CGSize(
                     width: self.parent.model.offset.width + translation.x,
@@ -492,22 +491,22 @@ struct PageControllerView: NSViewControllerRepresentable {
                     let displayedImageWidth = zoomedImageWidth * fitRatio * zoomScale
                     let displayedImageHeight = zoomedImageHeight * fitRatio * zoomScale
                     
-//                    print("displayBoundsInWindow \(displayBoundsInWindow)")
-//                    print("fitRatio \(fitRatio)")
-//                    print("zoomScale \(zoomScale)")
-//                    print("displayedImage \(displayedImageWidth) \(displayedImageHeight)")
-//                    print("transform \(transform.tx) \(transform.ty)")
+                    //                    print("displayBoundsInWindow \(displayBoundsInWindow)")
+                    //                    print("fitRatio \(fitRatio)")
+                    //                    print("zoomScale \(zoomScale)")
+                    //                    print("displayedImage \(displayedImageWidth) \(displayedImageHeight)")
+                    //                    print("transform \(transform.tx) \(transform.ty)")
                     
                     let halfWindowWidth = displayBoundsInWindow.width / 2
                     let halfWindowHeight = displayBoundsInWindow.height / 2
                     
                     let halfImageWidth = displayedImageWidth / 2
                     let halfImageHeight = displayedImageHeight / 2
-
+                    
                     // ベースのマージン（等倍基準）
                     let baseMarginX = displayBoundsInWindow.width - halfWindowWidth - halfImageWidth
                     let baseMarginY = displayBoundsInWindow.height - halfWindowHeight - halfImageHeight
-
+                    
                     // 拡大率に応じた追加マージン
                     var additionalMarginX: CGFloat = 0.0
                     var additionalMarginY: CGFloat = 0.0
@@ -522,9 +521,9 @@ struct PageControllerView: NSViewControllerRepresentable {
                         additionalMarginX = halfWindowWidth * 3
                         additionalMarginY = halfWindowHeight * 3
                     }
-
-//                    print("baseMarginX \(baseMarginX)")
-//                    print("additionalMarginX \(additionalMarginX)")
+                    
+                    //                    print("baseMarginX \(baseMarginX)")
+                    //                    print("additionalMarginX \(additionalMarginX)")
                     
                     // 画像の見かけ上サイズの10%を余白として設定（お好みで0.1 → 0.2などに変更可）
                     let imageMarginX = displayedImageWidth * 0.1
@@ -542,8 +541,8 @@ struct PageControllerView: NSViewControllerRepresentable {
                         transform.ty -= baseMarginY + additionalMarginY + imageMarginY
                     }
                     
-//                    print("re-transform \(transform.tx) \(transform.ty)")
-//                    print("    ")
+                    //                    print("re-transform \(transform.tx) \(transform.ty)")
+                    //                    print("    ")
                     
                     // 仮 transform を imageView に適用
                     layer.setAffineTransform(transform)
@@ -563,16 +562,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                 }
             }
         }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
@@ -663,7 +652,7 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
     
     // アラート関数：1.5秒で自動的に消える通知ウィンドウを表示（タイトルバーなし）
     func showAutoDismissAlert(message: String, in window: NSWindow) {
-
+        
         // 通知用の小さなウィンドウを生成（タイトルバーなし、透明）
         let alertWindow = NSWindow(
             // サイズ指定
