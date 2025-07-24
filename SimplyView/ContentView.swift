@@ -81,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 class ImageViewerModel: ObservableObject {
     // シングルトンインスタンス（外部から共有的にアクセス）
     static let shared = ImageViewerModel()
-
+    
     // 読み込まれた画像ファイルのURL配列（Viewがリアルタイムに監視）
     @Published var images: [URL] = []
     // 現在表示中の画像インデックス
@@ -95,6 +95,9 @@ class ImageViewerModel: ObservableObject {
     
     //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
+    // 見開きの制御
+    @Published var spreadImageRL = false
+    
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
@@ -137,7 +140,7 @@ class ImageViewerModel: ObservableObject {
             ) {
                 let filtered = urls
                     .filter { allowed.contains($0.pathExtension.lowercased()) }
-                    //Finder風の自然順ソート
+                //Finder風の自然順ソート
                     .sorted {
                         $0.lastPathComponent
                             .localizedStandardCompare($1.lastPathComponent)
@@ -178,7 +181,7 @@ class ImageViewerModel: ObservableObject {
                     // 負荷軽減のために少し待つ
                     Thread.sleep(forTimeInterval: 0.01)
                 }
-    
+                
                 DispatchQueue.main.async {
                     // 読み込み終了
                     self.isLoading = false
@@ -218,10 +221,20 @@ class ImageViewerModel: ObservableObject {
         let newImage = NSImage(size: size)
         // 描画を開始（この時点で描画コンテキストが開かれる）
         newImage.lockFocus()
-        // img1（current）を左側（x=0）に描画
-        img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-        // img2（next）を右側（x=img1の幅）に描画
-        img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        //左右を入れ替え
+        if spreadImageRL {
+            // img2（current）を左側（x=0）に描画
+            img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            // img1（next）を右側（x=img2の幅）に描画
+            img1.draw(at: NSPoint(x: img2.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            spreadImageRL = false
+        } else {
+            // img1（current）を左側（x=0）に描画
+            img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            // img2（next）を右側（x=img1の幅）に描画
+            img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            spreadImageRL = true
+        }
         // 描画を終了（描画コンテキストを閉じる）
         newImage.unlockFocus()
         // 合成結果の画像を返す
@@ -315,12 +328,12 @@ struct PageControllerView: NSViewControllerRepresentable {
                   let iv = vc.view as? NSImageView,
                   // いずれか取得できなければ表示処理中止
                   let layer = iv.layer else { return }
-
+            
             // ViewModel（画像一覧や状態管理）を取得
             let model = parent.model
             // 現在表示しようとしている画像のインデックス
-            let index = model.images.firstIndex(of: url) ?? 0
-
+            _ = model.images.firstIndex(of: url) ?? 0
+            
             // temporaryImageOverrides に登録された「一時的な合成画像」があればそちらを優先して表示
             if let override = model.temporaryImageOverrides[url] {
                 iv.image = override
@@ -328,7 +341,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // 通常の画像を読み込んで表示
                 iv.image = NSImage(contentsOf: url)
             }
-
+            
             // ▼ 以下は表示ビューの初期化処理（変形リセットなど） ▼
             // 拡大/縮小や回転の中心点を画像中央に設定（レイヤーのアンカーポイント）
             layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
@@ -342,9 +355,10 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.parent.model.scale = 1.0
                 // パン（移動）リセット
                 self.parent.model.offset = .zero
+                //anchorPointリセット
+                //self.parent.model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             }
         }
-
         
         // 遷移完了時にインデックスをViewModelに反映
         func pageController(_ pc: NSPageController, didTransitionTo object: Any) {
@@ -354,7 +368,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                     self.parent.model.currentIndex = idx
                     // 合成を解除
                     self.parent.model.clearOverrides()
-                    
                 }
             }
         }
@@ -401,7 +414,7 @@ struct PageControllerView: NSViewControllerRepresentable {
             let loc = g.location(in: iv)
             // ビューのサイズを取得（座標比率を計算するために使用）
             let b = iv.bounds
-
+            
             // メインスレッドでUIの状態を更新
             DispatchQueue.main.async {
                 // アンカーポイント（拡大・縮小の中心）をクリック位置の比率で設定
@@ -433,24 +446,120 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.applyTransform(iv: iv)
             }
         }
-
+        
         // パン（画像をドラッグで移動）操作を処理する関数
-        @objc func handlePan(_ g: NSPanGestureRecognizer) {
-            // 対象のビューが NSImageView であることを確認
-            guard let iv = g.view as? NSImageView else { return }
-            // ジェスチャーによる移動量（translation）を取得（ビュー内座標系）
-            let tr = g.translation(in: iv) // CGSize型（x:横方向, y:縦方向）
-            // 現在の移動量をリセット（累積しないように0に戻す）
-            g.setTranslation(.zero, in: iv)
+        @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
+            guard let imageView = gesture.view as? NSImageView,
+                  let window = imageView.window,
+                  let contentView = window.contentView,
+                  let displayArea = imageView.superview,// PageControllerView内の画像エリア
+                  let layer = imageView.layer else { return }
             
-            // メインスレッドでUIの状態（オフセット）を更新
+            
+            let displayBoundsInWindow = displayArea.convert(displayArea.bounds, to: nil)
+            
+            let translation = gesture.translation(in: imageView)
+            gesture.setTranslation(.zero, in: imageView)
+            
             DispatchQueue.main.async {
-                // 横方向の移動量を現在のオフセットに加算
-                self.parent.model.offset.width += tr.x
-                // 縦方向の移動量もオフセットに加算
-                self.parent.model.offset.height += tr.y
-                // 移動をレイヤーに反映（画像を実際に動かす）
-                self.applyTransform(iv: iv)
+                let proposedOffset = CGSize(
+                    width: self.parent.model.offset.width + translation.x,
+                    height: self.parent.model.offset.height + translation.y
+                )
+                
+                // 仮 offset を適用して transform
+                let originalTransform = layer.affineTransform()
+                var transform = originalTransform
+                
+                transform.tx = proposedOffset.width
+                transform.ty = proposedOffset.height
+                
+                let model = self.parent.model
+                if let image = imageView.image {
+                    let imageSize = image.size
+                    let zoomScale = model.scale
+                    
+                    // 拡大後の画像サイズ
+                    let zoomedImageWidth = imageSize.width * zoomScale
+                    let zoomedImageHeight = imageSize.height * zoomScale
+                    
+                    // ウィンドウと拡大画像のフィット比率（fitRatio は見かけ上の補正倍率）
+                    let fitRatio = min(displayBoundsInWindow.width / zoomedImageWidth,
+                                       displayBoundsInWindow.height / zoomedImageHeight)
+                    
+                    // 見かけ上の画像サイズ
+                    let displayedImageWidth = zoomedImageWidth * fitRatio * zoomScale
+                    let displayedImageHeight = zoomedImageHeight * fitRatio * zoomScale
+                    
+                    //                    print("displayBoundsInWindow \(displayBoundsInWindow)")
+                    //                    print("fitRatio \(fitRatio)")
+                    //                    print("zoomScale \(zoomScale)")
+                    //                    print("displayedImage \(displayedImageWidth) \(displayedImageHeight)")
+                    //                    print("transform \(transform.tx) \(transform.ty)")
+                    
+                    let halfWindowWidth = displayBoundsInWindow.width / 2
+                    let halfWindowHeight = displayBoundsInWindow.height / 2
+                    
+                    let halfImageWidth = displayedImageWidth / 2
+                    let halfImageHeight = displayedImageHeight / 2
+                    
+                    // ベースのマージン（等倍基準）
+                    let baseMarginX = displayBoundsInWindow.width - halfWindowWidth - halfImageWidth
+                    let baseMarginY = displayBoundsInWindow.height - halfWindowHeight - halfImageHeight
+                    
+                    // 拡大率に応じた追加マージン
+                    var additionalMarginX: CGFloat = 0.0
+                    var additionalMarginY: CGFloat = 0.0
+                    
+                    if zoomScale > 1.0 && zoomScale <= 2.0 {
+                        additionalMarginX = halfWindowWidth
+                        additionalMarginY = halfWindowHeight
+                    } else if zoomScale > 1.0 && zoomScale <= 3.0 {
+                        additionalMarginX = halfWindowWidth * 2
+                        additionalMarginY = halfWindowHeight * 2
+                    } else if zoomScale > 1.0 && zoomScale <= 4.0 {
+                        additionalMarginX = halfWindowWidth * 3
+                        additionalMarginY = halfWindowHeight * 3
+                    }
+                    
+                    //                    print("baseMarginX \(baseMarginX)")
+                    //                    print("additionalMarginX \(additionalMarginX)")
+                    
+                    // 画像の見かけ上サイズの10%を余白として設定（お好みで0.1 → 0.2などに変更可）
+                    let imageMarginX = displayedImageWidth * 0.1
+                    let imageMarginY = displayedImageHeight * 0.1
+                    // 方向に応じて transform.tx に補正値を加減
+                    if transform.tx > 0 {
+                        transform.tx += baseMarginX + additionalMarginX + imageMarginX
+                    } else {
+                        transform.tx -= baseMarginX + additionalMarginX + imageMarginX
+                    }
+                    // 方向に応じて transform.ty に補正値を加減
+                    if transform.ty > 0 {
+                        transform.ty += baseMarginY + additionalMarginY + imageMarginY + 84.0
+                    } else {
+                        transform.ty -= baseMarginY + additionalMarginY + imageMarginY
+                    }
+                    
+                    //                    print("re-transform \(transform.tx) \(transform.ty)")
+                    //                    print("    ")
+                    
+                    // 仮 transform を imageView に適用
+                    layer.setAffineTransform(transform)
+                    let transformedFrame = layer.frame
+                    layer.setAffineTransform(originalTransform) // 元に戻す
+                    
+                    let contentBounds = contentView.bounds
+                    
+                    if contentBounds.intersects(transformedFrame) {
+                        // はみ出してないので offset 更新
+                        self.parent.model.offset = proposedOffset
+                        self.applyTransform(iv: imageView)
+                    } else {
+                        // はみ出すので移動しない
+                        NSSound.beep()
+                    }
+                }
             }
         }
         
@@ -543,7 +652,7 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
     
     // アラート関数：1.5秒で自動的に消える通知ウィンドウを表示（タイトルバーなし）
     func showAutoDismissAlert(message: String, in window: NSWindow) {
-
+        
         // 通知用の小さなウィンドウを生成（タイトルバーなし、透明）
         let alertWindow = NSWindow(
             // サイズ指定
@@ -692,6 +801,7 @@ struct ContentView: View {
                         model.currentIndex = 0
                         model.scale = 1.0
                         model.offset = .zero
+                        //model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
                         //画像読み込み（非同期でサムネイルも生成）
                         model.loadImagesFromDirectory(url)
                         //viewerIDを更新してPageControllerをリフレッシュ
