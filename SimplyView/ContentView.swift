@@ -76,7 +76,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-
 // MARK: ImageViewerModel
 class ImageViewerModel: ObservableObject {
     // シングルトンインスタンス（外部から共有的にアクセス）
@@ -95,7 +94,7 @@ class ImageViewerModel: ObservableObject {
     
     //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
-
+    
     // 設定オプション（AppStorageで永続化）
     // 見開きの制御
     @AppStorage("reverseSpread") var reverseSpread: Bool = false
@@ -492,7 +491,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                     // 見かけ上の画像サイズ
                     let displayedImageWidth = zoomedImageWidth * fitRatio * zoomScale
                     let displayedImageHeight = zoomedImageHeight * fitRatio * zoomScale
-
+                    
                     let halfWindowWidth = displayBoundsInWindow.width / 2
                     let halfWindowHeight = displayBoundsInWindow.height / 2
                     
@@ -598,6 +597,8 @@ class KeyHandlingView: NSView {
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
     // NSPageController へのアクセス用ホルダ（弱参照）
     let holder: PageControllerView.ControllerHolder
+    //
+    let model: ImageViewerModel // ← 追加
     // 実際の NSView（KeyHandlingView）を生成する
     func makeNSView(context: Context) -> NSView {
         // NSView のサブクラス（カスタム）を作成
@@ -608,26 +609,39 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             let currentIndex = pc.selectedIndex
             let count = pc.arrangedObjects.count
             
+            // reverseKeyboard 設定を確認
+            let isReversed = model.reverseKeyboard
+            
+            
             switch ev.keyCode {
             case 123: // ← 左キー
-                //先頭の画像か判定
-                if currentIndex > 0 {
-                    pc.navigateBack(nil)
+                if isReversed {
+                    // 右キーとして処理
+                    if currentIndex < count - 1 {
+                        pc.navigateForward(nil)
+                    } else if let win = v.window {
+                        showAutoDismissAlert(message: "最後の画像です", in: win)
+                    }
                 } else {
-                    //アラートようにv.windowを渡す
-                    if let win = v.window {
-                        //アラート関数を呼び出す
+                    if currentIndex > 0 {
+                        pc.navigateBack(nil)
+                    } else if let win = v.window {
                         showAutoDismissAlert(message: "先頭の画像です", in: win)
-                    }                }
+                    }
+                }
                 return true
             case 124: // → 右キー
-                //最後の画像か判定
-                if currentIndex < count - 1 {
-                    pc.navigateForward(nil)
+                if isReversed {
+                    // 左キーとして処理
+                    if currentIndex > 0 {
+                        pc.navigateBack(nil)
+                    } else if let win = v.window {
+                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+                    }
                 } else {
-                    //アラートようにv.windowを渡す
-                    if let win = v.window {
-                        //アラート関数を呼び出す
+                    if currentIndex < count - 1 {
+                        pc.navigateForward(nil)
+                    } else if let win = v.window {
                         showAutoDismissAlert(message: "最後の画像です", in: win)
                     }
                 }
@@ -635,6 +649,34 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             default:
                 return false
             }
+            
+            //            switch ev.keyCode {
+            //            case 123: // ← 左キー
+            //                //先頭の画像か判定
+            //                if currentIndex > 0 {
+            //                    pc.navigateBack(nil)
+            //                } else {
+            //                    //アラートようにv.windowを渡す
+            //                    if let win = v.window {
+            //                        //アラート関数を呼び出す
+            //                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+            //                    }                }
+            //                return true
+            //            case 124: // → 右キー
+            //                //最後の画像か判定
+            //                if currentIndex < count - 1 {
+            //                    pc.navigateForward(nil)
+            //                } else {
+            //                    //アラートようにv.windowを渡す
+            //                    if let win = v.window {
+            //                        //アラート関数を呼び出す
+            //                        showAutoDismissAlert(message: "最後の画像です", in: win)
+            //                    }
+            //                }
+            //                return true
+            //            default:
+            //                return false
+            //            }
         }
         // NSView を SwiftUI に返す
         return v
@@ -773,7 +815,7 @@ struct ContentView: View {
     
     //@State private var showSettings = false
     @Binding var showSettings: Bool
-
+    
     
     //画面構成
     var body: some View {
@@ -898,7 +940,7 @@ struct ContentView: View {
                     //画像のページング表示（NSPageController）
                     PageControllerView(model: model, holder: holder)
                     //キーボード対応（← → で前後画像）
-                    KeyboardHandlingRepresentable(holder: holder)
+                    KeyboardHandlingRepresentable(holder: holder, model: model)
                         .allowsHitTesting(false)
                     //ウィンドウリサイズを検出して viewerID を更新
                     WindowResizeObserver {
