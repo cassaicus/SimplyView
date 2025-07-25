@@ -152,6 +152,27 @@ class ImageViewerModel: ObservableObject {
                 
                 // メインスレッドでUI更新を行うためにディスパッチ
                 DispatchQueue.main.async {
+                    // 画像がない時は停止
+                    if filtered.isEmpty {
+                        // 画像が見つからなかった場合
+                        //サムネイルクリア
+                        self._thumbnailCache.removeAll()
+                        // ダミーURLを1件だけ設定してクラッシュ回避
+                        let dummyURL = URL(fileURLWithPath: "/dev/null") // macOSでは無害なパス
+                        self.images = [dummyURL]
+                        self.currentIndex = 0
+                        self.scale = 1.0
+                        self.offset = .zero
+                        self.isLoading = false
+                        //アラート表示
+                        let alert = NSAlert()
+                        alert.messageText = "画像が見つかりません"
+                        alert.informativeText = "このフォルダには画像ファイルが含まれていません。"
+                        alert.alertStyle = .warning
+                        alert.runModal()
+                        
+                        return
+                    }
                     // フィルタ済画像リストをViewに反映
                     self.images = filtered
                     // 表示位置を先頭に
@@ -164,12 +185,6 @@ class ImageViewerModel: ObservableObject {
                     self._thumbnailCache.removeAll()
                     // 読み込み中に切り替え
                     self.isLoading = true
-                    
-                    // 画像がない時は停止
-                    if filtered.isEmpty {
-                        self.isLoading = false
-                        return
-                    }
                 }
                 //リサイズしてサムネイルを作成
                 for url in filtered {
@@ -649,34 +664,6 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             default:
                 return false
             }
-            
-            //            switch ev.keyCode {
-            //            case 123: // ← 左キー
-            //                //先頭の画像か判定
-            //                if currentIndex > 0 {
-            //                    pc.navigateBack(nil)
-            //                } else {
-            //                    //アラートようにv.windowを渡す
-            //                    if let win = v.window {
-            //                        //アラート関数を呼び出す
-            //                        showAutoDismissAlert(message: "先頭の画像です", in: win)
-            //                    }                }
-            //                return true
-            //            case 124: // → 右キー
-            //                //最後の画像か判定
-            //                if currentIndex < count - 1 {
-            //                    pc.navigateForward(nil)
-            //                } else {
-            //                    //アラートようにv.windowを渡す
-            //                    if let win = v.window {
-            //                        //アラート関数を呼び出す
-            //                        showAutoDismissAlert(message: "最後の画像です", in: win)
-            //                    }
-            //                }
-            //                return true
-            //            default:
-            //                return false
-            //            }
         }
         // NSView を SwiftUI に返す
         return v
@@ -966,22 +953,57 @@ struct ContentView: View {
 
 struct SettingsView: View {
     @ObservedObject var model: ImageViewerModel
-    @Environment(\.dismiss) private var dismiss
+    @AppStorage("reverseSpread") var reverseSpread: Bool = false
+    @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("設定")
-                .font(.title)
-                .padding(.bottom, 10)
+                .font(.title2)
+                .bold()
             
-            Toggle("見開きの左右を逆にする", isOn: $model.reverseSpread)
-            Toggle("キーボード操作（← →）を逆にする", isOn: $model.reverseKeyboard)
-            Spacer()
-            Button("閉じる") {
-                dismiss()
+            
+            Divider()
+            
+            GroupBox(label: Text("操作方法")) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("・← / →：前後の画像を表示")
+                    Text("・右で進む、左で戻る（逆設定可能）")
+                    Text("・マウスドラッグ：画像を移動")
+                    Text("・ダブルクリック：拡大 / 縮小")
+                    Text("・「見開き」は一つ前の画像を右に、")
+                    Text("　　表示中の画像を左に表示（逆設定可能）")
+                    Text("・フォルダを選択：画像を読み込む")
+                }
+                .font(.system(size: 13))
+                .padding(.vertical, 5)
             }
-            .padding()
-            .frame(width: 300)
+            .padding(.horizontal)
+            
+            
+            Divider()
+            
+            GroupBox(label: Text("オプション")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
+                    Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal)
+
+            Spacer()
+            
+            HStack {
+                Spacer()
+                Button("閉じる") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
         }
+        .padding()
+        .frame(width: 400, height: 430)
     }
 }
