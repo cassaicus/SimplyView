@@ -971,10 +971,14 @@ struct SettingsView: View {
                     Text("・← / →：前後の画像を表示")
                     Text("・右で進む、左で戻る（逆設定可能）")
                     Text("・マウスドラッグ：画像を移動")
-                    Text("・ダブルクリック：拡大 / 縮小")
+                    Text("・ダブルクリック：拡大(2倍,4倍,等倍)")
                     Text("・「見開き」は一つ前の画像を右に、")
                     Text("　　表示中の画像を左に表示（逆設定可能）")
-                    Text("・フォルダを選択：画像を読み込む")
+                    Text("　　進むか戻るで解除されます。")
+                    Text("・[フォルダを選択]で下記の形式で指定する")
+                    Text("　　ファイルを読み込みます。")
+                    Text("対応拡張子　jpg,jpeg,png,gif,bmp,tiff")
+
                 }
                 .font(.system(size: 13))
                 .padding(.vertical, 5)
@@ -1004,6 +1008,6 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 400, height: 430)
+        .frame(width: 315, height: 515)
     }
 }
