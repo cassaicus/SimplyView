@@ -131,7 +131,6 @@ class ImageViewerModel: ObservableObject {
         return _thumbnailCache[url]
     }
     
-    
     // フォルダから画像を読みだす
     func loadImagesFromDirectory(_ folder: URL) {
         // 対応画像拡張子配列
