@@ -100,7 +100,6 @@ class ImageViewerModel: ObservableObject {
     @AppStorage("reverseSpread") var reverseSpread: Bool = false
     @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
     
-    
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image

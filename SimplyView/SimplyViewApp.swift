@@ -10,7 +10,7 @@ struct SimplyViewApp: App {
     // AppDelegate を SwiftUI に統合（AppKit の連携に必要）
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
-    // 🔽 追加：設定ダイアログ表示フラグ
+    // 設定ダイアログ表示フラグ
     @State private var showSettings = false
     
     
