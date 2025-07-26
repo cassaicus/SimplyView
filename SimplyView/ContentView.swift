@@ -27,7 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // フォルダが選択された場合のみ処理を続ける
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
             // 対応する画像拡張子の配列
-            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff"]
+            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"]
             
             // フォルダ内のすべてのファイルを取得（隠しファイルは除外）
             if let files = try? FileManager.default.contentsOfDirectory(
@@ -135,7 +135,7 @@ class ImageViewerModel: ObservableObject {
     // フォルダから画像を読みだす
     func loadImagesFromDirectory(_ folder: URL) {
         // 対応画像拡張子配列
-        let allowed = ["jpg","jpeg","png","gif","bmp","tiff"]
+        let allowed = ["jpg","jpeg","png","gif","bmp","webp"]
         
         DispatchQueue.global(qos: .userInitiated).async {
             if let urls = try? FileManager.default.contentsOfDirectory(
@@ -971,13 +971,13 @@ struct SettingsView: View {
                     Text("・← / →：前後の画像を表示")
                     Text("・右で進む、左で戻る（逆設定可能）")
                     Text("・マウスドラッグ：画像を移動")
-                    Text("・ダブルクリック：拡大(2倍,4倍,等倍)")
+                    Text("・ダブルクリック：拡大(2倍,4倍,リセット)")
                     Text("・「見開き」は一つ前の画像を右に、")
                     Text("　　表示中の画像を左に表示（逆設定可能）")
                     Text("　　進むか戻るで解除されます。")
                     Text("・[フォルダを選択]で下記の形式で指定する")
                     Text("　　ファイルを読み込みます。")
-                    Text("対応拡張子　jpg,jpeg,png,gif,bmp,tiff")
+                    Text("対応拡張子　jpg,jpeg,png,gif,bmp,webp")
 
                 }
                 .font(.system(size: 13))
