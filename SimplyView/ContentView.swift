@@ -623,10 +623,8 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             guard let pc = holder.controller else { return false }
             let currentIndex = pc.selectedIndex
             let count = pc.arrangedObjects.count
-            
             // reverseKeyboard 設定を確認
             let isReversed = model.reverseKeyboard
-            
             
             switch ev.keyCode {
             case 123: // ← 左キー
@@ -912,10 +910,6 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(minHeight: 28)
-            
-            // --- 水平の境界線
-            Divider()
-            
             // --- メイン画像表示エリア
             if model.images.isEmpty {
                 //画像なしのメッセージ表示
@@ -948,7 +942,6 @@ struct ContentView: View {
         // ウィンドウ最小サイズ
         .frame(minWidth: 600, minHeight: 400)
     }
-    
 }
 
 struct SettingsView: View {
@@ -962,7 +955,6 @@ struct SettingsView: View {
             Text("設定")
                 .font(.title2)
                 .bold()
-            
             
             Divider()
             
