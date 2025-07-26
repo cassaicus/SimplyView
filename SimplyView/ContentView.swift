@@ -27,7 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // フォルダが選択された場合のみ処理を続ける
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
             // 対応する画像拡張子の配列
-            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff"]
+            let allowedExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"]
             
             // フォルダ内のすべてのファイルを取得（隠しファイルは除外）
             if let files = try? FileManager.default.contentsOfDirectory(
@@ -76,7 +76,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-
 // MARK: ImageViewerModel
 class ImageViewerModel: ObservableObject {
     // シングルトンインスタンス（外部から共有的にアクセス）
@@ -95,8 +94,12 @@ class ImageViewerModel: ObservableObject {
     
     //見開き表示用の一時的な合成画像差し替え
     @Published var temporaryImageOverrides: [URL: NSImage] = [:]
+    
+    // 設定オプション（AppStorageで永続化）
     // 見開きの制御
-    @Published var spreadImageRL = false
+    @AppStorage("reverseSpread") var reverseSpread: Bool = false
+    @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
+    
     
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
@@ -132,7 +135,7 @@ class ImageViewerModel: ObservableObject {
     // フォルダから画像を読みだす
     func loadImagesFromDirectory(_ folder: URL) {
         // 対応画像拡張子配列
-        let allowed = ["jpg","jpeg","png","gif","bmp","tiff"]
+        let allowed = ["jpg","jpeg","png","gif","bmp","webp"]
         
         DispatchQueue.global(qos: .userInitiated).async {
             if let urls = try? FileManager.default.contentsOfDirectory(
@@ -149,6 +152,27 @@ class ImageViewerModel: ObservableObject {
                 
                 // メインスレッドでUI更新を行うためにディスパッチ
                 DispatchQueue.main.async {
+                    // 画像がない時は停止
+                    if filtered.isEmpty {
+                        // 画像が見つからなかった場合
+                        //サムネイルクリア
+                        self._thumbnailCache.removeAll()
+                        // ダミーURLを1件だけ設定してクラッシュ回避
+                        let dummyURL = URL(fileURLWithPath: "/dev/null") // macOSでは無害なパス
+                        self.images = [dummyURL]
+                        self.currentIndex = 0
+                        self.scale = 1.0
+                        self.offset = .zero
+                        self.isLoading = false
+                        //アラート表示
+                        let alert = NSAlert()
+                        alert.messageText = "画像が見つかりません"
+                        alert.informativeText = "このフォルダには画像ファイルが含まれていません。"
+                        alert.alertStyle = .warning
+                        alert.runModal()
+                        
+                        return
+                    }
                     // フィルタ済画像リストをViewに反映
                     self.images = filtered
                     // 表示位置を先頭に
@@ -161,12 +185,6 @@ class ImageViewerModel: ObservableObject {
                     self._thumbnailCache.removeAll()
                     // 読み込み中に切り替え
                     self.isLoading = true
-                    
-                    // 画像がない時は停止
-                    if filtered.isEmpty {
-                        self.isLoading = false
-                        return
-                    }
                 }
                 //リサイズしてサムネイルを作成
                 for url in filtered {
@@ -221,20 +239,20 @@ class ImageViewerModel: ObservableObject {
         let newImage = NSImage(size: size)
         // 描画を開始（この時点で描画コンテキストが開かれる）
         newImage.lockFocus()
+        
         //左右を入れ替え
-        if spreadImageRL {
+        if reverseSpread {
             // img2（current）を左側（x=0）に描画
             img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
             // img1（next）を右側（x=img2の幅）に描画
             img1.draw(at: NSPoint(x: img2.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-            spreadImageRL = false
         } else {
             // img1（current）を左側（x=0）に描画
             img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
             // img2（next）を右側（x=img1の幅）に描画
             img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-            spreadImageRL = true
         }
+        
         // 描画を終了（描画コンテキストを閉じる）
         newImage.unlockFocus()
         // 合成結果の画像を返す
@@ -314,12 +332,12 @@ struct PageControllerView: NSViewControllerRepresentable {
             iv.addGestureRecognizer(NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:))))
             vc.view = iv
             return vc
-        }
+        } //funcEnd
         
         // 各オブジェクトに紐づく識別子
         func pageController(_: NSPageController, identifierFor _: Any) -> String {
             "ImageVC" // 固定文字列で識別
-        }
+        } //funcEnd
         
         // ページが表示される直前に呼ばれる処理（画像の読み込みや表示設定などを行う）
         func pageController(_ pc: NSPageController, prepare vc: NSViewController, with object: Any?) {
@@ -355,10 +373,8 @@ struct PageControllerView: NSViewControllerRepresentable {
                 self.parent.model.scale = 1.0
                 // パン（移動）リセット
                 self.parent.model.offset = .zero
-                //anchorPointリセット
-                //self.parent.model.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             }
-        }
+        } //funcEnd
         
         // 遷移完了時にインデックスをViewModelに反映
         func pageController(_ pc: NSPageController, didTransitionTo object: Any) {
@@ -370,7 +386,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                     self.parent.model.clearOverrides()
                 }
             }
-        }
+        } //funcEnd
         
         // 拡大処理（ピンチ）
         @objc func handlePinch(_ g: NSMagnificationGestureRecognizer) {
@@ -403,7 +419,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // このジェスチャーでの拡大率は使い終わったのでリセット
                 g.magnification = 0
             }
-        }
+        } //funcEnd
         
         // ダブルクリック時に拡大・縮小を切り替える処理（段階的ズーム操作）
         @objc func handleDoubleClick(_ g: NSClickGestureRecognizer) {
@@ -445,7 +461,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // 拡大率や位置などの変形をレイヤーに反映
                 self.applyTransform(iv: iv)
             }
-        }
+        } //funcEnd
         
         // パン（画像をドラッグで移動）操作を処理する関数
         @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
@@ -491,12 +507,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                     let displayedImageWidth = zoomedImageWidth * fitRatio * zoomScale
                     let displayedImageHeight = zoomedImageHeight * fitRatio * zoomScale
                     
-                    //                    print("displayBoundsInWindow \(displayBoundsInWindow)")
-                    //                    print("fitRatio \(fitRatio)")
-                    //                    print("zoomScale \(zoomScale)")
-                    //                    print("displayedImage \(displayedImageWidth) \(displayedImageHeight)")
-                    //                    print("transform \(transform.tx) \(transform.ty)")
-                    
                     let halfWindowWidth = displayBoundsInWindow.width / 2
                     let halfWindowHeight = displayBoundsInWindow.height / 2
                     
@@ -522,10 +532,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                         additionalMarginY = halfWindowHeight * 3
                     }
                     
-                    //                    print("baseMarginX \(baseMarginX)")
-                    //                    print("additionalMarginX \(additionalMarginX)")
-                    
-                    // 画像の見かけ上サイズの10%を余白として設定（お好みで0.1 → 0.2などに変更可）
+                    // 画像の見かけ上サイズの10%を余白として設定
                     let imageMarginX = displayedImageWidth * 0.1
                     let imageMarginY = displayedImageHeight * 0.1
                     // 方向に応じて transform.tx に補正値を加減
@@ -540,14 +547,11 @@ struct PageControllerView: NSViewControllerRepresentable {
                     } else {
                         transform.ty -= baseMarginY + additionalMarginY + imageMarginY
                     }
-                    
-                    //                    print("re-transform \(transform.tx) \(transform.ty)")
-                    //                    print("    ")
-                    
                     // 仮 transform を imageView に適用
                     layer.setAffineTransform(transform)
                     let transformedFrame = layer.frame
-                    layer.setAffineTransform(originalTransform) // 元に戻す
+                    // 元に戻す
+                    layer.setAffineTransform(originalTransform)
                     
                     let contentBounds = contentView.bounds
                     
@@ -561,7 +565,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                     }
                 }
             }
-        }
+        } //funcEnd
         
         // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
@@ -577,7 +581,7 @@ struct PageControllerView: NSViewControllerRepresentable {
             t = t.scaledBy(x: s, y: s)
             // 計算した変形行列を NSImageView の CALayer に反映
             iv.layer?.setAffineTransform(t)
-        }
+        } //funcEnd
     }
     // PageControllerを外部から操作するためのホルダークラス
     class ControllerHolder { weak var controller: NSPageController? }
@@ -608,6 +612,8 @@ class KeyHandlingView: NSView {
 struct KeyboardHandlingRepresentable: NSViewRepresentable {
     // NSPageController へのアクセス用ホルダ（弱参照）
     let holder: PageControllerView.ControllerHolder
+    //
+    let model: ImageViewerModel // ← 追加
     // 実際の NSView（KeyHandlingView）を生成する
     func makeNSView(context: Context) -> NSView {
         // NSView のサブクラス（カスタム）を作成
@@ -618,26 +624,39 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
             let currentIndex = pc.selectedIndex
             let count = pc.arrangedObjects.count
             
+            // reverseKeyboard 設定を確認
+            let isReversed = model.reverseKeyboard
+            
+            
             switch ev.keyCode {
             case 123: // ← 左キー
-                //先頭の画像か判定
-                if currentIndex > 0 {
-                    pc.navigateBack(nil)
+                if isReversed {
+                    // 右キーとして処理
+                    if currentIndex < count - 1 {
+                        pc.navigateForward(nil)
+                    } else if let win = v.window {
+                        showAutoDismissAlert(message: "最後の画像です", in: win)
+                    }
                 } else {
-                    //アラートようにv.windowを渡す
-                    if let win = v.window {
-                        //アラート関数を呼び出す
+                    if currentIndex > 0 {
+                        pc.navigateBack(nil)
+                    } else if let win = v.window {
                         showAutoDismissAlert(message: "先頭の画像です", in: win)
-                    }                }
+                    }
+                }
                 return true
             case 124: // → 右キー
-                //最後の画像か判定
-                if currentIndex < count - 1 {
-                    pc.navigateForward(nil)
+                if isReversed {
+                    // 左キーとして処理
+                    if currentIndex > 0 {
+                        pc.navigateBack(nil)
+                    } else if let win = v.window {
+                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+                    }
                 } else {
-                    //アラートようにv.windowを渡す
-                    if let win = v.window {
-                        //アラート関数を呼び出す
+                    if currentIndex < count - 1 {
+                        pc.navigateForward(nil)
+                    } else if let win = v.window {
                         showAutoDismissAlert(message: "最後の画像です", in: win)
                     }
                 }
@@ -781,6 +800,10 @@ struct ContentView: View {
     //表示内容の強制リフレッシュ用バインディング
     @Binding var viewerID: UUID
     
+    //@State private var showSettings = false
+    @Binding var showSettings: Bool
+    
+    
     //画面構成
     var body: some View {
         // 全体を縦方向に積む（余白3pt）
@@ -904,7 +927,7 @@ struct ContentView: View {
                     //画像のページング表示（NSPageController）
                     PageControllerView(model: model, holder: holder)
                     //キーボード対応（← → で前後画像）
-                    KeyboardHandlingRepresentable(holder: holder)
+                    KeyboardHandlingRepresentable(holder: holder, model: model)
                         .allowsHitTesting(false)
                     //ウィンドウリサイズを検出して viewerID を更新
                     WindowResizeObserver {
@@ -919,7 +942,72 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(model: model)
+        }
         // ウィンドウ最小サイズ
         .frame(minWidth: 600, minHeight: 400)
+    }
+    
+}
+
+struct SettingsView: View {
+    @ObservedObject var model: ImageViewerModel
+    @AppStorage("reverseSpread") var reverseSpread: Bool = false
+    @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("設定")
+                .font(.title2)
+                .bold()
+            
+            
+            Divider()
+            
+            GroupBox(label: Text("操作方法")) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("・← / →：前後の画像を表示")
+                    Text("・右で進む、左で戻る（逆設定可能）")
+                    Text("・マウスドラッグ：画像を移動")
+                    Text("・ダブルクリック：拡大(2倍,4倍,リセット)")
+                    Text("・「見開き」は一つ前の画像を右に、")
+                    Text("　　表示中の画像を左に表示（逆設定可能）")
+                    Text("　　進むか戻るで解除されます。")
+                    Text("・[フォルダを選択]で下記の形式で指定する")
+                    Text("　　ファイルを読み込みます。")
+                    Text("対応拡張子　jpg,jpeg,png,gif,bmp,webp")
+
+                }
+                .font(.system(size: 13))
+                .padding(.vertical, 5)
+            }
+            .padding(.horizontal)
+            
+            
+            Divider()
+            
+            GroupBox(label: Text("オプション")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
+                    Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal)
+
+            Spacer()
+            
+            HStack {
+                Spacer()
+                Button("閉じる") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 315, height: 515)
     }
 }

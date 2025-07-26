@@ -9,6 +9,11 @@ struct SimplyViewApp: App {
     @State private var viewerID = UUID()
     // AppDelegate を SwiftUI に統合（AppKit の連携に必要）
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    // 🔽 追加：設定ダイアログ表示フラグ
+    @State private var showSettings = false
+    
+    
     // コンストラクタ（アプリ初期化時に AppDelegate に model を渡す）
     init() {
         appDelegate.model = model
@@ -18,8 +23,8 @@ struct SimplyViewApp: App {
         // メインウィンドウの定義（タイトルと識別子を指定）
         Window("画像ビューア", id: "mainWindow") {
             // SwiftUI のメインビューを表示
-            ContentView(model: model, viewerID: $viewerID)
-                // ビューが表示されたときに AppDelegate 経由でファイル受け取り処理を登録
+            ContentView(model: model, viewerID: $viewerID, showSettings: $showSettings)
+            // ビューが表示されたときに AppDelegate 経由でファイル受け取り処理を登録
                 .onAppear {
                     appDelegate.onOpenFilesWithSelected = { imageFiles, selected in
                         // 対象フォルダに画像が1枚もなければアラートを表示して処理中止
@@ -60,6 +65,14 @@ struct SimplyViewApp: App {
                         }
                     }
                 }
+        }     
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("設定") {
+                    showSettings = true
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }
