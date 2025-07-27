@@ -21,13 +21,13 @@ struct ContentView: View {
             // --- ヘッダーエリア（フォルダ選択 + サムネイル + インジケータ）
             HStack(spacing: 6) {
                 // --- フォルダ選択ボタン
-                Button("フォルダを選択") {
+                Button("Folder") {
                     // macOS の標準フォルダ選択ダイアログ
                     let panel = NSOpenPanel()
                     panel.canChooseDirectories = true
                     panel.canChooseFiles = false
                     panel.allowsMultipleSelection = false
-                    panel.prompt = "選択"
+                    panel.prompt = "Choice"
                     
                     if panel.runModal() == .OK, let url = panel.url {
                         //状態をリセット（表示画像・スケール・オフセット）

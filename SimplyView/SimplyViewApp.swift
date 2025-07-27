@@ -20,7 +20,7 @@ struct SimplyViewApp: App {
     // アプリの UI（Scene）定義
     var body: some Scene {
         // メインウィンドウの定義（タイトルと識別子を指定）
-        Window("画像ビューア", id: "mainWindow") {
+        Window("SimplyView", id: "mainWindow") {
             // SwiftUI のメインビューを表示
             ContentView(model: model, viewerID: $viewerID, showSettings: $showSettings)
             // ビューが表示されたときに AppDelegate 経由でファイル受け取り処理を登録
@@ -29,8 +29,8 @@ struct SimplyViewApp: App {
                         // 対象フォルダに画像が1枚もなければアラートを表示して処理中止
                         if imageFiles.isEmpty {
                             let alert = NSAlert()
-                            alert.messageText = "画像が見つかりません"
-                            alert.informativeText = "選択されたフォルダには対応する画像ファイルがありません。"
+                            alert.messageText = "NO image 画像が見つかりません"
+                            alert.informativeText = "This Folder is NO image "
                             alert.alertStyle = .warning
                             alert.addButton(withTitle: "OK")
                             alert.runModal()
@@ -67,7 +67,7 @@ struct SimplyViewApp: App {
         }
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("設定") {
+                Button("Settings設定") {
                     showSettings = true
                 }
                 .keyboardShortcut(",", modifiers: .command)
