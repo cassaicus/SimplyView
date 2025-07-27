@@ -1,4 +1,4 @@
-A Minimalist macOS Image Viewer
+SimplyView - A Minimalist macOS Image Viewer
 SimplyView is a lightweight, macOS-native application designed for those who value simplicity and speed when viewing images. With an intuitive interface and fluid performance, it’s the perfect tool for quick image browsing without unnecessary distractions. 🖼️✨
 
 Features:
