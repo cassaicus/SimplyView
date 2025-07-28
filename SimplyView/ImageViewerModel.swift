@@ -131,6 +131,7 @@ class ImageViewerModel: ObservableObject {
             }
         }
     }
+    
     // リサイズ
     func resizeImage(image: NSImage, size: NSSize) -> NSImage {
         guard let rep = image.bestRepresentation(for: NSRect(origin: .zero, size: size), context: nil, hints: nil) else {
@@ -146,42 +147,99 @@ class ImageViewerModel: ObservableObject {
         resizedImage.unlockFocus()
         return resizedImage
     }
+        
     // 2つの画像URL（current, next）を横に合成して、1枚の見開き画像を生成する関数
     func makeSpreadImage(current: URL, next: URL?) -> NSImage? {
-        // current の画像を読み込み（必須）し、next の画像はオプショナルで読み込む
-        guard let img1 = NSImage(contentsOf: current),
-              let img2 = next.flatMap({ NSImage(contentsOf: $0) }) else {
-            // どちらかが読み込めなければ処理中止
+        // current画像は必須、next画像はオプションとして読み込み（どちらもNSImageに）
+        guard let rawImg1 = NSImage(contentsOf: current),
+              let rawImg2 = next.flatMap({ NSImage(contentsOf: $0) }),
+              let img1 = forceDecodeImage(rawImg1),   // ピクセル解像度で正確に読み込み
+              let img2 = forceDecodeImage(rawImg2)
+        else {
+            // どちらかの画像が読み込めなければnilで中断
             return nil
         }
-        // 横幅は2枚分を加算、高さはどちらか高い方を使用（高さの合成はしない）
-        let totalWidth = img1.size.width + img2.size.width
+
+        // 高さの大きい方を基準に、見開きの高さを決定
         let maxHeight = max(img1.size.height, img2.size.height)
-        // 合成後の画像サイズを設定（横に2枚分、縦は高い方）
-        let size = NSSize(width: totalWidth, height: maxHeight)
-        // 新しい空のNSImageを作成（この中に合成画像を描く）
-        let newImage = NSImage(size: size)
-        // 描画を開始（この時点で描画コンテキストが開かれる）
-        newImage.lockFocus()
-        
-        //左右を入れ替え
-        if reverseSpread {
-            // img2（current）を左側（x=0）に描画
-            img2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-            // img1（next）を右側（x=img2の幅）に描画
-            img1.draw(at: NSPoint(x: img2.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+
+        // スケーリング後の画像（縦揃え用）を入れる変数
+        let scaledImg1: NSImage
+        let scaledImg2: NSImage
+
+        // img1が小さい場合、高さをmaxHeightに揃えて拡大
+        if img1.size.height < maxHeight {
+            let scale = maxHeight / img1.size.height                         // 拡大倍率を計算
+            let newSize = NSSize(width: img1.size.width * scale, height: maxHeight) // アスペクト比を維持したサイズ
+            scaledImg1 = NSImage(size: newSize)                              // 新しい画像を作成
+            scaledImg1.lockFocus()                                           // 描画準備
+            img1.draw(in: NSRect(origin: .zero, size: newSize),              // 拡大描画
+                      from: .zero,
+                      operation: .sourceOver,
+                      fraction: 1.0)
+            scaledImg1.unlockFocus()
         } else {
-            // img1（current）を左側（x=0）に描画
-            img1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
-            // img2（next）を右側（x=img1の幅）に描画
-            img2.draw(at: NSPoint(x: img1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            scaledImg1 = img1 // すでに高さが最大ならそのまま使用
         }
-        
-        // 描画を終了（描画コンテキストを閉じる）
-        newImage.unlockFocus()
-        // 合成結果の画像を返す
-        return newImage
+
+        // img2が小さい場合、高さをmaxHeightに揃えて拡大（img1と同様の処理）
+        if img2.size.height < maxHeight {
+            let scale = maxHeight / img2.size.height
+            let newSize = NSSize(width: img2.size.width * scale, height: maxHeight)
+            scaledImg2 = NSImage(size: newSize)
+            scaledImg2.lockFocus()
+            img2.draw(in: NSRect(origin: .zero, size: newSize),
+                      from: .zero,
+                      operation: .sourceOver,
+                      fraction: 1.0)
+            scaledImg2.unlockFocus()
+        } else {
+            scaledImg2 = img2
+        }
+
+        // 合成後の画像サイズ（横に2枚並べるので幅を加算、高さは最大値）
+        let totalWidth = scaledImg1.size.width + scaledImg2.size.width
+        let size = NSSize(width: totalWidth, height: maxHeight)
+        let newImage = NSImage(size: size)           // 合成用の空のNSImageを生成
+        newImage.lockFocus()                         // 描画コンテキストを開く
+
+        // デバッグ用：画像サイズを表示
+        print(scaledImg1.size)
+        print(scaledImg2.size)
+
+        // reverseSpread が有効な場合は左右を入れ替えて描画
+        if reverseSpread {
+            scaledImg2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            scaledImg1.draw(at: NSPoint(x: scaledImg2.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        } else {
+            scaledImg1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+            scaledImg2.draw(at: NSPoint(x: scaledImg1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
+        }
+
+        newImage.unlockFocus() // 描画コンテキストを閉じる
+
+        return newImage // 合成したNSImageを返す
     }
+
+    // 不完全な画像読み込みを防ぐため、画像をピクセル単位で明示的に描画し直す関数
+    func forceDecodeImage(_ nsImage: NSImage) -> NSImage? {
+        // 最初の画像表現（NSImageRep）を取得（失敗したらnil）
+        guard let rep = nsImage.representations.first else { return nil }
+
+        // 実ピクセル数で新しい画像サイズを決定
+        let size = NSSize(width: rep.pixelsWide, height: rep.pixelsHigh)
+        let newImage = NSImage(size: size) // 指定サイズのNSImageを生成
+
+        newImage.lockFocus() // 描画開始
+        nsImage.draw(in: NSRect(origin: .zero, size: size),
+                     from: .zero,
+                     operation: .sourceOver,
+                     fraction: 1.0)
+        newImage.unlockFocus() // 描画終了
+
+        return newImage // 正確なサイズで再描画された画像を返す
+    }
+
 }
 
 // MARK: PageControllerView
@@ -256,12 +314,12 @@ struct PageControllerView: NSViewControllerRepresentable {
             iv.addGestureRecognizer(NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:))))
             vc.view = iv
             return vc
-        } //funcEnd
+        }
         
         // 各オブジェクトに紐づく識別子
         func pageController(_: NSPageController, identifierFor _: Any) -> String {
             "ImageVC" // 固定文字列で識別
-        } //funcEnd
+        }
         
         // ページが表示される直前に呼ばれる処理（画像の読み込みや表示設定などを行う）
         func pageController(_ pc: NSPageController, prepare vc: NSViewController, with object: Any?) {
@@ -298,7 +356,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // パン（移動）リセット
                 self.parent.model.offset = .zero
             }
-        } //funcEnd
+        }
         
         // 遷移完了時にインデックスをViewModelに反映
         func pageController(_ pc: NSPageController, didTransitionTo object: Any) {
@@ -310,7 +368,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                     self.parent.model.clearOverrides()
                 }
             }
-        } //funcEnd
+        }
         
         // 拡大処理（ピンチ）
         @objc func handlePinch(_ g: NSMagnificationGestureRecognizer) {
@@ -343,7 +401,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // このジェスチャーでの拡大率は使い終わったのでリセット
                 g.magnification = 0
             }
-        } //funcEnd
+        }
         
         // ダブルクリック時に拡大・縮小を切り替える処理（段階的ズーム操作）
         @objc func handleDoubleClick(_ g: NSClickGestureRecognizer) {
@@ -385,7 +443,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // 拡大率や位置などの変形をレイヤーに反映
                 self.applyTransform(iv: iv)
             }
-        } //funcEnd
+        }
         
         // パン（画像をドラッグで移動）操作を処理する関数
         @objc func handlePan(_ gesture: NSPanGestureRecognizer) {
@@ -418,7 +476,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 if let image = imageView.image {
                     let imageSize = image.size
                     let zoomScale = model.scale
-                    
+                    print(image.size)
                     // 拡大後の画像サイズ
                     let zoomedImageWidth = imageSize.width * zoomScale
                     let zoomedImageHeight = imageSize.height * zoomScale
@@ -489,7 +547,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                     }
                 }
             }
-        } //funcEnd
+        }
         
         // レイヤーへの反映（画像を実際に動かす）関数
         private func applyTransform(iv: NSImageView) {
@@ -505,7 +563,8 @@ struct PageControllerView: NSViewControllerRepresentable {
             t = t.scaledBy(x: s, y: s)
             // 計算した変形行列を NSImageView の CALayer に反映
             iv.layer?.setAffineTransform(t)
-        } //funcEnd
+        }
+        
     }
     // PageControllerを外部から操作するためのホルダークラス
     class ControllerHolder { weak var controller: NSPageController? }
