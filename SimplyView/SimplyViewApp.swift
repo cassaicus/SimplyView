@@ -5,23 +5,18 @@ import SwiftUI
 struct SimplyViewApp: App {
     // アプリ全体で共有される画像表示モデル（画像一覧や拡大率などを管理）
     @StateObject private var model = ImageViewerModel()
-    
     //bookmarkを保存、呼び出しのクラス
     @StateObject private var bookmarkStore: BookmarkStore
-
     // NSPageController を強制再構築するための識別子（主にリサイズ・見開き用）
     @State private var viewerID = UUID()
     // AppDelegate を SwiftUI に統合（AppKit の連携に必要）
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
     // 設定ダイアログ表示フラグ
     @State private var showSettings = false
     
-
     // コンストラクタ（アプリ初期化時に AppDelegate に model を渡す）
     init() {
         //appDelegate.model = model
-        
         let viewerModel = ImageViewerModel()
         _model = StateObject(wrappedValue: viewerModel)
         _bookmarkStore = StateObject(wrappedValue: BookmarkStore(model: viewerModel))
