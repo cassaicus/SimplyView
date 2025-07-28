@@ -26,7 +26,7 @@ struct ContentView: View {
                     panel.canChooseDirectories = true
                     panel.canChooseFiles = false
                     panel.allowsMultipleSelection = false
-                    panel.prompt = "select"
+                    panel.prompt = "Select"
                     
                     if panel.runModal() == .OK, let url = panel.url {
                         //状態をリセット（表示画像・スケール・オフセット）
@@ -42,6 +42,7 @@ struct ContentView: View {
                 }
                 // macOS風小サイズボタン
                 .controlSize(.small)
+                .frame(width: 50) // 横幅を直接指定
                 
                 // --- サムネイル表示エリア
                 if !model.images.isEmpty {
@@ -113,7 +114,7 @@ struct ContentView: View {
                         viewerID = UUID()
                     }
                 }) {
-                    Text("見開き")
+                    Text("📖")
                 }
                 .controlSize(.small)
                 .help("この画像だけ一時的に見開きで表示します")
@@ -152,6 +153,8 @@ struct ContentView: View {
         }
         // ウィンドウ最小サイズ
         .frame(minWidth: 600, minHeight: 400)
+        //.ignoresSafeArea() // ここが重要！
+
     }
 }
 
@@ -194,7 +197,9 @@ struct SettingsView: View {
             GroupBox(label: Text("オプション")) {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
+                    Text("Reverse left/right arrow key behavior")
                     Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
+                    Text("Flip page layout (left-right reversed)")
                 }
                 .padding(.top, 4)
             }
@@ -211,6 +216,6 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 315, height: 515)
+        .frame(width: 315, height: 560)
     }
 }
