@@ -22,7 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseFiles = false // ファイル選択を不可に
         panel.canChooseDirectories = true // フォルダ選択を可能に
         panel.allowsMultipleSelection = false // 複数選択不可
-        panel.prompt = "select" // ダイアログのボタン名
+        panel.prompt = "Select" // ダイアログのボタン名
         panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
         
         // フォルダが選択された場合のみ処理を続ける
