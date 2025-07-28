@@ -23,11 +23,8 @@ class ImageViewerModel: ObservableObject {
     // 設定オプション（AppStorageで永続化）
     // 見開きの制御
     @AppStorage("reverseSpread") var reverseSpread: Bool = false
+    // キーボード制御
     @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
-    
-    
-    
-    
     
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {

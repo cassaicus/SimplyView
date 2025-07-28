@@ -26,7 +26,7 @@ struct ContentView: View {
                     panel.canChooseDirectories = true
                     panel.canChooseFiles = false
                     panel.allowsMultipleSelection = false
-                    panel.prompt = "Choice"
+                    panel.prompt = "select"
                     
                     if panel.runModal() == .OK, let url = panel.url {
                         //状態をリセット（表示画像・スケール・オフセット）
@@ -163,7 +163,7 @@ struct SettingsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("設定")
+            Text("setting設定")
                 .font(.title2)
                 .bold()
             
@@ -204,7 +204,7 @@ struct SettingsView: View {
             
             HStack {
                 Spacer()
-                Button("閉じる") {
+                Button("close") {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

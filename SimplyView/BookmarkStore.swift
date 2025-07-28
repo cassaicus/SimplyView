@@ -60,48 +60,33 @@ struct BookmarkCommands: Commands {
     @ObservedObject var store: BookmarkStore
     @ObservedObject var model: ImageViewerModel
     var appDelegate: AppDelegate
-
-    
-    
     var body: some Commands {
-        CommandMenu("ブックマーク") {
+        CommandMenu("Bookmark") {
+            
+            ForEach(store.items) { bookmark in
+                   Button(action: {
+                       appDelegate.openFolder(bookmark.url)
+                        //print(bookmark.url)
+                   }) {
+                       Text(bookmark.title)
+                   }
+               }
+            Divider()
             // 現在の画像フォルダを追加
             Button(action: {
                 guard model.images.indices.contains(model.currentIndex) else { return }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 store.addBookmark(from: folderURL)
             }) {
-                Text("このフォルダをブックマーク")
+                Text("addBookmark")
             }
-
             // 現在の画像フォルダを削除
             Button(action: {
                 guard model.images.indices.contains(model.currentIndex) else { return }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 store.removeBookmark(for: folderURL)
             }) {
-                Text("このフォルダをブックマークから削除")
-            }
-
-            Divider()
-
-            // 保存済みブックマークのリストを表示
-//            ForEach(store.items) { bookmark in
-//                Button(action: {
-//                    // 該当ブックマークのフォルダを開く処理（任意で変更）
-//                    NSWorkspace.shared.open(bookmark.url)
-//                }) {
-//                    Text(bookmark.title)
-//                }
-//            }
-            
-            ForEach(store.items) { bookmark in
-                Button(action: {
-                    appDelegate.openFolder(bookmark.url)
-                    print(bookmark.url)
-                }) {
-                    Text(bookmark.title)
-                }
+                Text("removeBookmark")
             }
 
             Divider()
@@ -109,7 +94,7 @@ struct BookmarkCommands: Commands {
             Button(action: {
                 store.removeAll()
             }) {
-                Text("すべてのブックマークをクリア")
+                Text("removeAll")
             }
         }
     }

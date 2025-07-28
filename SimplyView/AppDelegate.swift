@@ -7,7 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var onOpenFile: (([URL]) -> Void)?
     // 選択されたファイルとそのフォルダ内の画像ファイル一覧を処理するクロージャ
     var onOpenFilesWithSelected: (([URL], URL) -> Void)?
-    // ← モデルインスタンスを保持（サムネイル生成等で使用）
+    // モデルインスタンスを保持（サムネイル生成等で使用）
     var model: ImageViewerModel?
     
     // Finder などからアプリがファイルで開かれたときに呼び出される
@@ -22,7 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseFiles = false // ファイル選択を不可に
         panel.canChooseDirectories = true // フォルダ選択を可能に
         panel.allowsMultipleSelection = false // 複数選択不可
-        panel.prompt = "このフォルダを開く" // ダイアログのボタン名
+        panel.prompt = "select" // ダイアログのボタン名
         panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
         
         // フォルダが選択された場合のみ処理を続ける
@@ -83,7 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseFiles = false // ファイル選択を不可に
         panel.canChooseDirectories = true // フォルダ選択を可能に
         panel.allowsMultipleSelection = false // 複数選択不可
-        panel.prompt = "このフォルダを開く" // ダイアログのボタン名
+        panel.prompt = "select" // ダイアログのボタン名
         panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
         
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
@@ -102,7 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             guard !imageFiles.isEmpty else {
                 let alert = NSAlert()
-                alert.messageText = "このフォルダには画像がありません"
+                alert.messageText = "NO image このフォルダには画像がありません"
                 alert.runModal()
                 return
             }
