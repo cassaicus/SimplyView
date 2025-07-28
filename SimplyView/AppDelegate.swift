@@ -90,7 +90,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"]
             let fileManager = FileManager.default
-            guard let files = try? fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) else { return }
+            guard let files = try? fileManager.contentsOfDirectory(
+                at: confirmedFolder,
+                includingPropertiesForKeys: nil,
+                options: .skipsHiddenFiles
+            ) else { return }
             
             let imageFiles = files.filter { url in
                 imageExtensions.contains(url.pathExtension.lowercased())
