@@ -13,7 +13,6 @@ struct ContentView: View {
     //@State private var showSettings = false
     @Binding var showSettings: Bool
     
-    
     //画面構成
     var body: some View {
         // 全体を縦方向に積む（余白3pt）

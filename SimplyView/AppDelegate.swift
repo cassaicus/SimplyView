@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let selectedFileURL = urls.first else { return }
         // 対象ファイルのあるフォルダのURLを取得
         let folderURL = selectedFileURL.deletingLastPathComponent()
+
         // フォルダ選択ダイアログのインスタンス生成
         let panel = NSOpenPanel()
         panel.canChooseFiles = false // ファイル選択を不可に
@@ -73,6 +74,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }    //endfunc
+    
+    func openFolder(_ folderURL: URL) {
+        
+        // フォルダ選択ダイアログのインスタンス生成
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false // ファイル選択を不可に
+        panel.canChooseDirectories = true // フォルダ選択を可能に
+        panel.allowsMultipleSelection = false // 複数選択不可
+        panel.prompt = "このフォルダを開く" // ダイアログのボタン名
+        panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
+        
+        if panel.runModal() == .OK, let confirmedFolder = panel.url {
+            
+            let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"]
+            let fileManager = FileManager.default
+            guard let files = try? fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) else { return }
+            
+            let imageFiles = files.filter { url in
+                imageExtensions.contains(url.pathExtension.lowercased())
+            }.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            
+            guard !imageFiles.isEmpty else {
+                let alert = NSAlert()
+                alert.messageText = "このフォルダには画像がありません"
+                alert.runModal()
+                return
+            }
+            
+            let selected = imageFiles.first!
+            onOpenFilesWithSelected?(imageFiles, selected)
+        }
     }
+    
 }
 
