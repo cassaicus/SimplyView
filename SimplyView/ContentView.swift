@@ -122,6 +122,19 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(minHeight: 28)
+            
+            
+//            // フォルダをFinderで開く
+//            Button("Finder") {
+//                if let folderURL = model.images[safe: model.currentIndex]?.deletingLastPathComponent() {
+//                    NSWorkspace.shared.open(folderURL)
+//                }
+//            }
+//            .controlSize(.small)
+//            .frame(width: 60)
+//            .disabled( model.images[safe: model.currentIndex] == nil )
+            
+            
             // --- メイン画像表示エリア
             if model.images.isEmpty {
                 //画像なしのメッセージ表示
@@ -155,6 +168,12 @@ struct ContentView: View {
         .frame(minWidth: 600, minHeight: 400)
         //.ignoresSafeArea() // ここが重要！
 
+    }
+}
+
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }
 
