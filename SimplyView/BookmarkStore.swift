@@ -1,34 +1,47 @@
-import SwiftUI
-import Combine
+import SwiftUI        // SwiftUIのUI要素やデータバインディングを使用
+import Combine        // ObservableObjectなどリアクティブ機能を使用
 
+// ブックマーク管理用のデータモデル（フォルダの登録・削除・保存を行う）
 class BookmarkStore: ObservableObject {
+
+    // 1つのブックマークデータ（ID、表示名、URL）を定義。Codableで保存可能に
     struct Bookmark: Identifiable, Codable, Equatable {
         var id = UUID()
-        var title: String
-        var url: URL
+        var title: String         // 表示用タイトル（例：フォルダ名）
+        var url: URL              // 実際のフォルダのパス
     }
 
+    // 表示用のブックマーク配列（UIと同期）
     @Published var items: [Bookmark] = []
+
+    // AppStorageを使って永続的に保存（UserDefaultsと同様だがSwiftUIに最適化）
     @AppStorage("bookmarkedFolders") private var bookmarkedFoldersData: String = "[]"
 
+    // 画像モデル（現在の画像などを取得するため）
     private weak var model: ImageViewerModel?
 
+    // 初期化時にモデルを受け取り、保存済みブックマークを読み込む
     init(model: ImageViewerModel) {
         self.model = model
         loadBookmarks()
     }
 
+    // AppStorageの文字列データを配列に変換して取得
     var bookmarkedFolders: [String] {
         get {
             guard let data = bookmarkedFoldersData.data(using: .utf8) else { return [] }
             return (try? JSONDecoder().decode([String].self, from: data)) ?? []
         }
         set {
-            bookmarkedFoldersData = (try? JSONEncoder().encode(newValue)).map { String(data: $0, encoding: .utf8)! } ?? "[]"
-            loadBookmarks()
+            // 新しいブックマーク配列をJSON文字列に変換して保存
+            bookmarkedFoldersData = (try? JSONEncoder().encode(newValue))
+                .map { String(data: $0, encoding: .utf8)! } ?? "[]"
+            //print(bookmarkedFoldersData)
+            loadBookmarks() // 表示用のitemsも更新
         }
     }
 
+    // 表示用のBookmark構造体配列を作成（title付き）
     func loadBookmarks() {
         items = bookmarkedFolders.compactMap { path in
             let url = URL(fileURLWithPath: path)
@@ -36,65 +49,100 @@ class BookmarkStore: ObservableObject {
         }
     }
 
+    // ブックマークを追加（すでに登録されていれば無視）
     func addBookmark(from folderURL: URL) {
         let path = folderURL.path
         guard !bookmarkedFolders.contains(path) else { return }
         bookmarkedFolders.append(path)
     }
 
+    // ブックマークを削除
     func removeBookmark(for folderURL: URL) {
         let path = folderURL.path
         bookmarkedFolders.removeAll { $0 == path }
     }
 
+    // FolderSelect画像のないフォルダでも登録できる
+    func FolderSelect() {
+        // フォルダ選択ダイアログのインスタンス生成
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false // ファイル選択を不可に
+        panel.canChooseDirectories = true // フォルダ選択を可能に
+        panel.allowsMultipleSelection = false // 複数選択不可
+        panel.prompt = "select" // ダイアログのボタン名
+        //panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
+        
+        // ユーザーが「選択」ボタンを押し、かつフォルダが選択された場合のみ処理を続行
+        if panel.runModal() == .OK, let confirmedFolder = panel.url {
+            // ブックマークを追加
+            addBookmark(from: confirmedFolder)
+        }
+    }
+
+    // すべてのブックマークを削除
     func removeAll() {
         bookmarkedFolders = []
     }
 
+    // フォルダがすでにブックマークに含まれているか判定
     func isBookmarked(_ folderURL: URL) -> Bool {
         return bookmarkedFolders.contains(folderURL.path)
     }
 }
 
+
+// SwiftUIのメニューコマンド拡張（CommandMenu）を定義
 struct BookmarkCommands: Commands {
-    @ObservedObject var store: BookmarkStore
-    @ObservedObject var model: ImageViewerModel
-    var appDelegate: AppDelegate
+    @ObservedObject var store: BookmarkStore           // ブックマーク管理
+    @ObservedObject var model: ImageViewerModel        // 現在の画像情報
+    var appDelegate: AppDelegate                       // フォルダを開くために必要な機能を持つ
+
     var body: some Commands {
-        CommandMenu("Bookmark") {
-            
+        CommandMenu("Bookmark") {                      // メニュータイトル「Bookmark」
+
+            // ブックマークされた各フォルダをリスト表示
             ForEach(store.items) { bookmark in
-                   Button(action: {
-                       appDelegate.openFolder(bookmark.url)
-                        //print(bookmark.url)
-                   }) {
-                       Text(bookmark.title)
-                   }
-               }
-            Divider()
-            // 現在の画像フォルダを追加
+                Button(action: {
+                    appDelegate.openFolder(bookmark.url) // フォルダを画像ビューアで開く
+                }) {
+                    Text(bookmark.title) // メニュー項目にフォルダ名を表示
+                }
+            }
+
+            Divider() // 仕切り線
+
+            // 現在の画像のフォルダをブックマークに追加
             Button(action: {
                 guard model.images.indices.contains(model.currentIndex) else { return }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 store.addBookmark(from: folderURL)
             }) {
-                Text("addBookmark")
+                Text("AddBookmark") // ボタン表示
             }
-            // 現在の画像フォルダを削除
+
+            // 現在の画像のフォルダをブックマークから削除
             Button(action: {
                 guard model.images.indices.contains(model.currentIndex) else { return }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 store.removeBookmark(for: folderURL)
             }) {
-                Text("removeBookmark")
+                Text("RemoveBookmark")
             }
 
             Divider()
 
+            // FolderSelect
+            Button(action: {
+                store.FolderSelect()
+            }) {
+                Text("FolderSelect")
+            }
+            
+            // ブックマークをすべて削除
             Button(action: {
                 store.removeAll()
             }) {
-                Text("removeAll")
+                Text("RemoveAll")
             }
         }
     }

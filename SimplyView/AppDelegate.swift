@@ -80,36 +80,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // フォルダ選択ダイアログのインスタンス生成
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false // ファイル選択を不可に
-        panel.canChooseDirectories = true // フォルダ選択を可能に
-        panel.allowsMultipleSelection = false // 複数選択不可
-        panel.prompt = "select" // ダイアログのボタン名
-        panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
-        
+
+        panel.canChooseFiles = false // ファイル（単体）選択を無効にする（＝フォルダのみ選べる）
+        panel.canChooseDirectories = true // フォルダの選択を有効にする
+        panel.allowsMultipleSelection = false // フォルダの複数選択を禁止（1つだけ選択可）
+        panel.prompt = "select" // ダイアログのボタン名（任意の文字列を設定可能）
+        panel.directoryURL = folderURL // 最初に開くディレクトリの初期位置を設定
+
+        // ユーザーが「選択」ボタンを押し、かつフォルダが選択された場合のみ処理を続行
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
-            
+
+            // 対象とする画像の拡張子リスト（小文字限定）
             let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"]
+
+            // ファイル管理クラスのインスタンスを取得
             let fileManager = FileManager.default
+
+            // 指定されたフォルダ内の全ファイルを取得（隠しファイルは除外）
             guard let files = try? fileManager.contentsOfDirectory(
                 at: confirmedFolder,
                 includingPropertiesForKeys: nil,
                 options: .skipsHiddenFiles
-            ) else { return }
-            
+            ) else { return } // ファイル取得に失敗した場合は処理中止
+
+            // 拡張子が画像と一致するファイルだけを抽出し、ファイル名でソート
             let imageFiles = files.filter { url in
                 imageExtensions.contains(url.pathExtension.lowercased())
             }.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            
+
+            // フォルダに画像が1枚もなければアラート表示して処理を終了
             guard !imageFiles.isEmpty else {
                 let alert = NSAlert()
                 alert.messageText = "NO image このフォルダには画像がありません"
                 alert.runModal()
                 return
             }
-            
+
+            // 最初の画像を選択状態として扱う
             let selected = imageFiles.first!
+
+            // コールバック（クロージャ）を使って呼び出し元に画像一覧と選択画像を通知
             onOpenFilesWithSelected?(imageFiles, selected)
         }
+
     }
     
 }
