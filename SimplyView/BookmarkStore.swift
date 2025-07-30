@@ -129,7 +129,7 @@ struct BookmarkCommands: Commands {
             Button(action: {
                 store.FolderSelect()
             }) {
-                Text("BookmarkFolderSelect")
+                Text("BookmarkFolder Select")
             }
             
             Divider()
