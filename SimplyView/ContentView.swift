@@ -20,7 +20,7 @@ struct ContentView: View {
             // --- ヘッダーエリア（フォルダ選択 + サムネイル + インジケータ）
             HStack(spacing: 6) {
                 // --- フォルダ選択ボタン
-                Button("Folder") {
+                Button("FolderSelect") {
                     // macOS の標準フォルダ選択ダイアログ
                     let panel = NSOpenPanel()
                     panel.canChooseDirectories = true
@@ -42,7 +42,7 @@ struct ContentView: View {
                 }
                 // macOS風小サイズボタン
                 .controlSize(.small)
-                .frame(width: 50) // 横幅を直接指定
+                .frame(width: 85) // 横幅を直接指定
                 
                 // --- サムネイル表示エリア
                 if !model.images.isEmpty {
@@ -117,22 +117,22 @@ struct ContentView: View {
                     Text("📖")
                 }
                 .controlSize(.small)
-                .help("この画像だけ一時的に見開きで表示します")
+                .help("This image will be temporarily displayed in a two-page spread.")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(minHeight: 28)
             
             
-//            // フォルダをFinderで開く
-//            Button("Finder") {
-//                if let folderURL = model.images[safe: model.currentIndex]?.deletingLastPathComponent() {
-//                    NSWorkspace.shared.open(folderURL)
-//                }
-//            }
-//            .controlSize(.small)
-//            .frame(width: 60)
-//            .disabled( model.images[safe: model.currentIndex] == nil )
+            //            // フォルダをFinderで開く
+            //            Button("Finder") {
+            //                if let folderURL = model.images[safe: model.currentIndex]?.deletingLastPathComponent() {
+            //                    NSWorkspace.shared.open(folderURL)
+            //                }
+            //            }
+            //            .controlSize(.small)
+            //            .frame(width: 60)
+            //            .disabled( model.images[safe: model.currentIndex] == nil )
             
             
             // --- メイン画像表示エリア
@@ -167,7 +167,7 @@ struct ContentView: View {
         // ウィンドウ最小サイズ
         .frame(minWidth: 600, minHeight: 400)
         //.ignoresSafeArea() // ここが重要！
-
+        
     }
 }
 
@@ -179,8 +179,8 @@ extension Array {
 
 struct SettingsView: View {
     @ObservedObject var model: ImageViewerModel
-    @AppStorage("reverseSpread") var reverseSpread: Bool = false
-    @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
+    @AppStorage("reverseSpread") var reverseSpread = false
+    @AppStorage("reverseArrowKeys") var reverseKeyboard = false
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -191,50 +191,60 @@ struct SettingsView: View {
             
             Divider()
             
-            GroupBox(label: Text("操作方法")) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("・← / →：前後の画像を表示")
-                    Text("・右で進む、左で戻る（逆設定可能）")
-                    Text("・マウスドラッグ：画像を移動")
-                    Text("・ダブルクリック：拡大(2倍,4倍,リセット)")
-                    Text("・[📖]は一つ前の画像を右に、")
-                    Text("　　表示中の画像を左に表示（逆設定可能）")
-                    Text("　　進むか戻るで解除されます。")
-                    Text("・[Select]で下記の形式で指定する")
-                    Text("　　ファイルを読み込みます。")
-                    Text("対応拡張子　jpg,jpeg,png,gif,bmp,webp")
-
+            // ここを HStack にして横並びに
+            HStack(alignment: .top, spacing: 20) {
+                GroupBox(label: Text("操作方法")) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("・← / →：前後の画像を表示")
+                            Text("・右で進む、左で戻る（逆設定可能）")
+                            Text("・マウスドラッグ：画像を移動")
+                            Text("・ダブルクリック：拡大(2倍,4倍,リセット)")
+                            Text("・[📖]は一つ前の画像を右に、")
+                            Text("　　表示中の画像を左に表示（逆設定可能）")
+                            Text("　　進むか戻るで解除されます。")
+                            Text("・[📖]This image will be ")
+                            Text("　　temporarily displayed in a ")
+                            Text("　　two-page spread.")
+                            Text("・[Select]で下記の形式で指定する")
+                            Text("　　ファイルを読み込みます。")
+                            Text("対応拡張子　jpg,jpeg,png,gif,bmp,webp")
+                            
+                        }
+                        .font(.system(size: 13))
+                        .padding(.vertical, 5)
+                        
+                        
+                    }
+                    .font(.system(size: 13))
+                    .padding(.vertical, 5)
                 }
-                .font(.system(size: 13))
-                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity)
+                
+                GroupBox(label: Text("オプション")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
+                        Text("Reverse left/right arrow key behavior")
+                        Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
+                        Text("Flip page layout (left-right reversed)")
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
             }
             .padding(.horizontal)
             
-            
-            Divider()
-            
-            GroupBox(label: Text("オプション")) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
-                    Text("Reverse left/right arrow key behavior")
-                    Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
-                    Text("Flip page layout (left-right reversed)")
-                }
-                .padding(.top, 4)
-            }
-            .padding(.horizontal)
-
-            Spacer()
+            //Spacer()
             
             HStack {
                 Spacer()
-                Button("close") {
-                    dismiss()
-                }
-                .keyboardShortcut(.defaultAction)
+                Button("close") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding()
-        .frame(width: 315, height: 560)
+        // 2カラムを想定して十分な幅を指定
+        .frame(width: 650, height: 465)
     }
 }
