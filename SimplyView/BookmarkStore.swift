@@ -109,40 +109,50 @@ struct BookmarkCommands: Commands {
                 }
             }
 
-            Divider() // 仕切り線
-
-            // 現在の画像のフォルダをブックマークに追加
-            Button(action: {
+            // 仕切り線
+            Divider()
+            
+            
+            Button("AddBookmark") {
                 guard model.images.indices.contains(model.currentIndex) else { return }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 store.addBookmark(from: folderURL)
-            }) {
-                Text("AddBookmark") // ボタン表示
             }
-
-            // 現在の画像のフォルダをブックマークから削除
-            Button(action: {
-                guard model.images.indices.contains(model.currentIndex) else { return }
+            // currentIndex が無効、または URL がフォルダにならない場合に無効化
+            .disabled({
+                guard model.images.indices.contains(model.currentIndex) else { return true }
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                store.removeBookmark(for: folderURL)
-            }) {
-                Text("RemoveBookmark")
-            }
-
-            Divider()
-
+                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
+            }())
+            
             // FolderSelect
             Button(action: {
                 store.FolderSelect()
             }) {
-                Text("FolderSelect")
+                Text("BookmarkFolderSelect")
             }
             
-            // ブックマークをすべて削除
-            Button(action: {
-                store.removeAll()
-            }) {
-                Text("RemoveAll")
+            Divider()
+            
+            // 現在の画像のフォルダをブックマークから削除
+            Menu("RemoveBookmark") {
+                if store.items.isEmpty {
+                    Text("No bookmarks")
+                } else {
+                    ForEach(store.items) { bookmark in
+                        Button(bookmark.title) {
+                            store.removeBookmark(for: bookmark.url)
+                        }
+                    }
+                    Divider()
+                    // ブックマークをすべて削除
+                    Button(action: {
+                        store.removeAll()
+                    }) {
+                        Text("RemoveAll")
+                    }
+
+                }
             }
         }
     }
