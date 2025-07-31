@@ -86,12 +86,12 @@
 				};
 			};
 			buildConfigurationList = 0166B06D2E35F41000105128 /* Build configuration list for PBXProject "SimplyView" */;
-			developmentRegion = en;
+			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
 				ja,
+				Base,
 			);
 			mainGroup = 0166B0692E35F41000105128;
 			minimizedProjectReferenceProxies = 1;
@@ -184,6 +184,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -239,6 +240,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
 		};
@@ -330,7 +332,7 @@
 				0166B07D2E35F41100105128 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		0166B07E2E35F41100105128 /* Build configuration list for PBXNativeTarget "SimplyView" */ = {
 			isa = XCConfigurationList;
@@ -339,7 +341,7 @@
 				0166B0802E35F41100105128 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+  <file original="SimplyView/Localizable.xcstrings" source-language="en" target-language="ja" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="16.4" build-num="16F6"/>
+    </header>
+    <body>
+      <trans-unit id="  Load file Supported formats: jpg, jpeg, png, gif, bmp, webp" xml:space="preserve">
+        <source>  Load file Supported formats: jpg, jpeg, png, gif, bmp, webp</source>
+        <target state="translated">対応拡張子　jpg,jpeg,png,gif,bmp,webp</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="%lld / %lld" xml:space="preserve">
+        <source>%1$lld / %2$lld</source>
+        <note/>
+      </trans-unit>
+      <trans-unit id="+" xml:space="preserve">
+        <source>+</source>
+        <target state="translated">+</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="-" xml:space="preserve">
+        <source>-</source>
+        <note/>
+      </trans-unit>
+      <trans-unit id="AddBookmark" xml:space="preserve">
+        <source>AddBookmark</source>
+        <target state="translated">ブックマークに追加</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Bookmark" xml:space="preserve">
+        <source>Bookmark</source>
+        <target state="translated">ブックマーク</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="BookmarkFolder Select" xml:space="preserve">
+        <source>BookmarkFolder Select</source>
+        <target state="translated">ブックマークするフォルダ</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Display page spread left-right reversed" xml:space="preserve">
+        <source>Display page spread left-right reversed</source>
+        <target state="translated">見開きを左右逆にする</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Facing pages" xml:space="preserve">
+        <source>Facing pages</source>
+        <target state="translated">見開き</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Folder Select" xml:space="preserve">
+        <source>Folder Select</source>
+        <target state="translated">フォルダ選択</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="FolderSelect" xml:space="preserve">
+        <source>FolderSelect</source>
+        <target state="translated">フォルダ選択</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="How to Use" xml:space="preserve">
+        <source>How to Use</source>
+        <target state="translated">使い方</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Image not loaded." xml:space="preserve">
+        <source>Image not loaded.</source>
+        <target state="translated">画像がありません</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="NO image" xml:space="preserve">
+        <source>NO image</source>
+        <target state="translated">画像がありません</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="No bookmarks" xml:space="preserve">
+        <source>No bookmarks</source>
+        <target state="translated">ブックマークがありません</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Open the current folder in Finder" xml:space="preserve">
+        <source>Open the current folder in Finder</source>
+        <target state="translated">フォルダーをファインダーで開く</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Options" xml:space="preserve">
+        <source>Options</source>
+        <target state="translated">オプション</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="RealScale" xml:space="preserve">
+        <source>RealScale</source>
+        <target state="translated">リアルスケール</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="RemoveAll" xml:space="preserve">
+        <source>RemoveAll</source>
+        <target state="translated">すべて削除</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="RemoveBookmark" xml:space="preserve">
+        <source>RemoveBookmark</source>
+        <target state="translated">ブックマークを削除</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Reverse ← → arrow key direction" xml:space="preserve">
+        <source>Reverse ← → arrow key direction</source>
+        <target state="translated">← → キーの方向を逆にする</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Settings" xml:space="preserve">
+        <source>Settings</source>
+        <target state="translated">設定</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="SimplyView" xml:space="preserve">
+        <source>SimplyView</source>
+        <target state="translated">SimplyView</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="This image will be temporarily displayed in a two-page spread." xml:space="preserve">
+        <source>This image will be temporarily displayed in a two-page spread.</source>
+        <target state="translated">見開き</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="Tools" xml:space="preserve">
+        <source>Tools</source>
+        <target state="translated">ツール</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="close" xml:space="preserve">
+        <source>close</source>
+        <target state="translated">閉じる</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・Double click: Zoom (2x, 4x, reset)" xml:space="preserve">
+        <source>・Double click: Zoom (2x, 4x, reset)</source>
+        <target state="translated">・ダブルクリック：拡大(2倍,4倍,リセット)</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・Mouse drag: Move the image" xml:space="preserve">
+        <source>・Mouse drag: Move the image</source>
+        <target state="translated">・マウスドラッグ：画像を移動</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・Right to go forward, left to go back (can be reversed)" xml:space="preserve">
+        <source>・Right to go forward, left to go back (can be reversed)</source>
+        <target state="translated">・右で進む、左で戻る（逆設定可能）</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・Use [Select] to load a file in one of the formats below" xml:space="preserve">
+        <source>・Use [Select] to load a file in one of the formats below</source>
+        <target state="translated">・[Select]で下記の形式で指定する</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・[📖] moves the previous image to the right Displays the current image on the left (can be reversed) Will be canceled when you move forward/backward" xml:space="preserve">
+        <source>・[📖] moves the previous image to the right Displays the current image on the left (can be reversed) Will be canceled when you move forward/backward</source>
+        <target state="translated">・[📖]は一つ前の画像を右に表示中の画像を左に表示（逆設定可能）進むか戻るで解除されます。</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="・← / →: Show previous/next image" xml:space="preserve">
+        <source>・← / →: Show previous/next image</source>
+        <target state="translated">・← / →：前後の画像を表示	</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="📖" xml:space="preserve">
+        <source>📖</source>
+        <note/>
+      </trans-unit>
+    </body>
+  </file>
+  <file original="SimplyView/SimplyView-InfoPlist.xcstrings" source-language="en" target-language="ja" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="16.4" build-num="16F6"/>
+    </header>
+    <body>
+      <trans-unit id="CFBundleName" xml:space="preserve">
+        <source>SimplyView</source>
+        <note>Bundle name</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

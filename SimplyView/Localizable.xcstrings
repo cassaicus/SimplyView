@@ -1,7 +1,192 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
+    "  Load file Supported formats: jpg, jpeg, png, gif, bmp, webp" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応拡張子　jpg,jpeg,png,gif,bmp,webp"
+          }
+        }
+      }
+    },
+    "-" : {
 
+    },
+    "・[📖] moves the previous image to the right Displays the current image on the left (can be reversed) Will be canceled when you move forward/backward" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "・[📖]は一つ前の画像を右に、表示中の画像を左に表示（逆設定可能）\t進むか戻るで解除されます。"
+          }
+        }
+      }
+    },
+    "・← / →: Show previous/next image" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← / →：前後の画像を表示"
+          }
+        }
+      }
+    },
+    "・Double click: Zoom (2x, 4x, reset)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "・ダブルクリック：拡大(2倍,4倍,リセット)"
+          }
+        }
+      }
+    },
+    "・Mouse drag: Move the image" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "・マウスドラッグ：画像を移動"
+          }
+        }
+      }
+    },
+    "・Right to go forward, left to go back (can be reversed)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "・右で進む、左で戻る（逆設定可能）"
+          }
+        }
+      }
+    },
+    "・Use [Select] to load a file in one of the formats below" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "・[Select]で下記の形式で指定するファイルを読み込みます。"
+          }
+        }
+      }
+    },
+    "%lld / %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "+" : {
+
+    },
+    "📖" : {
+
+    },
+    "AddBookmark" : {
+
+    },
+    "Bookmark" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマーク"
+          }
+        }
+      }
+    },
+    "BookmarkFolder Select" : {
+
+    },
+    "close" : {
+
+    },
+    "Display page spread left-right reversed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見開きを左右逆に表示"
+          }
+        }
+      }
+    },
+    "Facing pages" : {
+
+    },
+    "Folder Select" : {
+
+    },
+    "FolderSelect" : {
+
+    },
+    "How to Use" : {
+
+    },
+    "Image not loaded." : {
+
+    },
+    "Key" : {
+      "extractionState" : "manual"
+    },
+    "No bookmarks" : {
+
+    },
+    "NO image" : {
+
+    },
+    "Open the current folder in Finder" : {
+
+    },
+    "Options" : {
+
+    },
+    "RealScale" : {
+
+    },
+    "RemoveAll" : {
+
+    },
+    "RemoveBookmark" : {
+
+    },
+    "Reverse ← → arrow key direction" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← → キーの方向を逆にする"
+          }
+        }
+      }
+    },
+    "Settings" : {
+
+    },
+    "SimplyView" : {
+
+    },
+    "This image will be temporarily displayed in a two-page spread." : {
+
+    },
+    "Tools" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツール"
+          }
+        }
+      }
+    }
   },
   "version" : "1.0"
 }
