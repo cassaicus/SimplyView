@@ -104,6 +104,18 @@ struct BookmarkCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Bookmark") {                      // メニュータイトル「Bookmark」
+            
+            Button("AddBookmark") {
+                guard model.images.indices.contains(model.currentIndex) else { return }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                store.addBookmark(from: folderURL)
+            }
+            // currentIndex が無効、または URL がフォルダにならない場合に無効化
+            .disabled({
+                guard model.images.indices.contains(model.currentIndex) else { return true }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
+            }())
 
             // FolderSelect
             Button(action: {
@@ -112,21 +124,6 @@ struct BookmarkCommands: Commands {
                 Text("BookmarkFolder Select")
             }
 
-            // 仕切り線
-            Divider()
-
-            // ブックマークされた各フォルダをリスト表示
-            ForEach(store.items) { bookmark in
-                Button(action: {
-                    appDelegate.openFolder(bookmark.url) // フォルダを画像ビューアで開く
-                }) {
-                    Text(bookmark.title) // メニュー項目にフォルダ名を表示
-                }
-            }
-
-            // 仕切り線
-            Divider()
-            
             // 現在の画像のフォルダをブックマークから削除
             Menu("RemoveBookmark") {
                 if store.items.isEmpty {
@@ -150,30 +147,15 @@ struct BookmarkCommands: Commands {
             
             // 仕切り線
             Divider()
-            
-            Button("AddBookmark") {
-                guard model.images.indices.contains(model.currentIndex) else { return }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                store.addBookmark(from: folderURL)
-            }
-            // currentIndex が無効、または URL がフォルダにならない場合に無効化
-            .disabled({
-                guard model.images.indices.contains(model.currentIndex) else { return true }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
-            }())
 
-            Button("Folder OPEN") {
-                guard model.images.indices.contains(model.currentIndex) else { return }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                store.folderopen(from: folderURL)
+            // ブックマークされた各フォルダをリスト表示
+            ForEach(store.items) { bookmark in
+                Button(action: {
+                    appDelegate.openFolder(bookmark.url) // フォルダを画像ビューアで開く
+                }) {
+                    Text(bookmark.title) // メニュー項目にフォルダ名を表示
+                }
             }
-            // currentIndex が無効、または URL がフォルダにならない場合に無効化
-            .disabled({
-                guard model.images.indices.contains(model.currentIndex) else { return true }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
-            }())
         }
     }
 }
