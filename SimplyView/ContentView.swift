@@ -37,7 +37,7 @@ struct ContentView: View {
                         //画像読み込み（非同期でサムネイルも生成）
                         model.loadImagesFromDirectory(url)
                         //viewerIDを更新してPageControllerをリフレッシュ
-                        viewerID = UUID()
+                        //viewerID = UUID()
                     }
                 }
                 // macOS風小サイズボタン
@@ -122,18 +122,6 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(minHeight: 28)
-            
-            
-            //            // フォルダをFinderで開く
-            //            Button("Finder") {
-            //                if let folderURL = model.images[safe: model.currentIndex]?.deletingLastPathComponent() {
-            //                    NSWorkspace.shared.open(folderURL)
-            //                }
-            //            }
-            //            .controlSize(.small)
-            //            .frame(width: 60)
-            //            .disabled( model.images[safe: model.currentIndex] == nil )
-            
             
             // --- メイン画像表示エリア
             if model.images.isEmpty {

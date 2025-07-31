@@ -81,6 +81,7 @@ struct SimplyViewApp: App {
         // ここの commands ブロックで動的メニューを注入
         .commands {
             BookmarkCommands(store: bookmarkStore, model: model, appDelegate: appDelegate)
+            ToolsCommands(model: model, viewerID: $viewerID)  // ← Binding渡す
         }
     }
 }

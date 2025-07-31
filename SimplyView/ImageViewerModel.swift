@@ -26,6 +26,21 @@ class ImageViewerModel: ObservableObject {
     // キーボード制御
     @AppStorage("reverseArrowKeys") var reverseKeyboard: Bool = false
     
+    // 現在の NSImageView への参照
+    var currentImageView: NSImageView?
+
+    
+
+    func applyTransform(iv: NSImageView) {
+        var transform = CATransform3DIdentity
+        // スケール（拡大率）を適用
+        transform = CATransform3DScale(transform, scale, scale, 1.0)
+        // オフセット（パン操作）を適用
+        transform = CATransform3DTranslate(transform, offset.width / scale, offset.height / scale, 0)
+        // レイヤーに変形を適用
+        iv.layer?.transform = transform
+    }
+    
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
@@ -244,7 +259,7 @@ struct PageControllerView: NSViewControllerRepresentable {
     @ObservedObject var model: ImageViewerModel
     // 外部からNSPageControllerを操作するためのホルダー
     let holder: ControllerHolder
-    
+        
     func makeNSViewController(context: Context) -> NSPageController {
         // NSPageControllerインスタンス生成
         let pc = NSPageController()
@@ -352,6 +367,8 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // パン（移動）リセット
                 self.parent.model.offset = .zero
             }
+            // 現在の NSImageView への参照
+            parent.model.currentImageView = iv
         }
         
         // 遷移完了時にインデックスをViewModelに反映
@@ -420,19 +437,7 @@ struct PageControllerView: NSViewControllerRepresentable {
                 // レイヤーの位置をクリック位置に合わせて移動（見た目の中心点がズレないよう調整）
                 layer.position = CGPoint(x: loc.x, y: loc.y)
                 
-                
-                var realScale = 0.0
-                if let rep = iv.image?.representations.first {
-                    let pixelWidth = CGFloat(rep.pixelsWide)
-                    let viewWidth = iv.bounds.width
-                    realScale = pixelWidth / viewWidth
-                }
-                
-                print(realScale)
-                
-                
-                
-                // 現在の拡大率に応じて段階的に切り替え（等倍 → 2倍 → 4倍 → リセット）
+                //現在の拡大率に応じて段階的に切り替え（等倍 → 2倍 → 4倍 → リセット）
                 switch self.parent.model.scale {
                 case ..<1.5:
                     // 1.0 → 2.0 に拡大
