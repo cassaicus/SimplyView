@@ -34,7 +34,7 @@ struct SimplyViewApp: App {
                         // 対象フォルダに画像が1枚もなければアラートを表示して処理中止
                         if imageFiles.isEmpty {
                             let alert = NSAlert()
-                            alert.messageText = "NO image 画像が見つかりません"
+                            alert.messageText = "NO image"
                             alert.informativeText = "This Folder is NO image "
                             alert.alertStyle = .warning
                             alert.addButton(withTitle: "OK")
@@ -72,7 +72,7 @@ struct SimplyViewApp: App {
         }
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("Settings設定") {
+                Button("Settings") {
                     showSettings = true
                 }
                 .keyboardShortcut(",", modifiers: .command)

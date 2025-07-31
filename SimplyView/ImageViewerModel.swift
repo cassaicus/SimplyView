@@ -105,8 +105,8 @@ class ImageViewerModel: ObservableObject {
                         self.isLoading = false
                         //アラート表示
                         let alert = NSAlert()
-                        alert.messageText = "画像が見つかりません"
-                        alert.informativeText = "このフォルダには画像ファイルが含まれていません。"
+                        alert.messageText = "NO image"
+                        alert.informativeText = "this folder has no image"
                         alert.alertStyle = .warning
                         alert.runModal()
                         
