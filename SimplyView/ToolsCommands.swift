@@ -28,7 +28,15 @@ struct ToolsCommands: Commands {
             Divider()
             // 拡大ボタン
             Button("+") {
+                
                 model.scale *= 1.2 // 20% 拡大
+                
+                if let iv = model.currentImageView, let layer = iv.layer {
+                    layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                    layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY)
+                    model.applyTransform(iv: iv)
+                }
+                
                 //viewerID = UUID()
                 if let iv = model.currentImageView{
                     model.applyTransform(iv: iv)
@@ -42,6 +50,14 @@ struct ToolsCommands: Commands {
             
             Button("-") {
                 model.scale /= 1.2 // 20% 縮小
+                
+                if let iv = model.currentImageView, let layer = iv.layer {
+                    layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                    layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY)
+                    model.applyTransform(iv: iv)
+                }
+                
+                
                 //viewerID = UUID()
                 if let iv = model.currentImageView{
                     model.applyTransform(iv: iv)
@@ -62,6 +78,14 @@ struct ToolsCommands: Commands {
 
                     let realScale = viewWidth != 0 ? pixelWidth / viewWidth : 1.0
                     model.scale = realScale
+                    
+                    if let iv = model.currentImageView, let layer = iv.layer {
+                        layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                        layer.position = CGPoint(x: iv.bounds.midX, y: iv.bounds.midY)
+                        model.applyTransform(iv: iv)
+                    }
+                    
+                    
                     model.applyTransform(iv: iv)
                 }
             }

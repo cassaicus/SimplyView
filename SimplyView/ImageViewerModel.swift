@@ -32,6 +32,8 @@ class ImageViewerModel: ObservableObject {
     
 
     func applyTransform(iv: NSImageView) {
+        
+        
         var transform = CATransform3DIdentity
         // スケール（拡大率）を適用
         transform = CATransform3DScale(transform, scale, scale, 1.0)
