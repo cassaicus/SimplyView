@@ -19,11 +19,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // フォルダ選択ダイアログのインスタンス生成
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false // ファイル選択を不可に
-        panel.canChooseDirectories = true // フォルダ選択を可能に
-        panel.allowsMultipleSelection = false // 複数選択不可
-        panel.prompt = "Select" // ダイアログのボタン名
-        panel.directoryURL = folderURL // 初期ディレクトリを設定（現在のファイルのフォルダ）
+        // ファイル選択を不可に
+        panel.canChooseFiles = false
+        // フォルダ選択を可能に
+        panel.canChooseDirectories = true
+        // 複数選択不可
+        panel.allowsMultipleSelection = false
+        // ダイアログのボタン名
+        panel.prompt = "Select"
+        // 初期ディレクトリを設定（現在のファイルのフォルダ）
+        panel.directoryURL = folderURL
         
         // フォルダが選択された場合のみ処理を続ける
         if panel.runModal() == .OK, let confirmedFolder = panel.url {
@@ -111,7 +116,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // フォルダに画像が1枚もなければアラート表示して処理を終了
             guard !imageFiles.isEmpty else {
                 let alert = NSAlert()
-                alert.messageText = "NO image このフォルダには画像がありません"
+                alert.messageText = "This Folder NO image"
                 alert.runModal()
                 return
             }

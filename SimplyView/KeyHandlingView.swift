@@ -47,13 +47,13 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
                     if currentIndex < count - 1 {
                         pc.navigateForward(nil)
                     } else if let win = v.window {
-                        showAutoDismissAlert(message: "最後の画像です", in: win)
+                        showAutoDismissAlert(message: "last image", in: win)
                     }
                 } else {
                     if currentIndex > 0 {
                         pc.navigateBack(nil)
                     } else if let win = v.window {
-                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+                        showAutoDismissAlert(message: "first image", in: win)
                     }
                 }
                 return true
@@ -63,13 +63,13 @@ struct KeyboardHandlingRepresentable: NSViewRepresentable {
                     if currentIndex > 0 {
                         pc.navigateBack(nil)
                     } else if let win = v.window {
-                        showAutoDismissAlert(message: "先頭の画像です", in: win)
+                        showAutoDismissAlert(message: "first image", in: win)
                     }
                 } else {
                     if currentIndex < count - 1 {
                         pc.navigateForward(nil)
                     } else if let win = v.window {
-                        showAutoDismissAlert(message: "最後の画像です", in: win)
+                        showAutoDismissAlert(message: "last image", in: win)
                     }
                 }
                 return true

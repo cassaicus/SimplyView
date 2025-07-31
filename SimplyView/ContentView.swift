@@ -42,7 +42,8 @@ struct ContentView: View {
                 }
                 // macOS風小サイズボタン
                 .controlSize(.small)
-                .frame(width: 85) // 横幅を直接指定
+                // 横幅を直接指定
+                .frame(width: 85)
                 
                 // --- サムネイル表示エリア
                 if !model.images.isEmpty {
@@ -65,7 +66,8 @@ struct ContentView: View {
                                                 RoundedRectangle(cornerRadius: 4)
                                                     .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
                                             )
-                                            .id(index) //スクロール用ID
+                                            //スクロール用ID
+                                            .id(index)
                                             .onTapGesture {
                                                 model.currentIndex = index
                                                 //選択時にスクロールセンターへ
@@ -96,7 +98,7 @@ struct ContentView: View {
                 
                 // --- 総画像数 の表示エリア
                 Text(model.images.isEmpty
-                     ? "画像なし"
+                     ? "NO image"
                      : "\(model.currentIndex + 1) / \(model.images.count)")
                 .font(.caption)
                 .controlSize(.small)
@@ -126,7 +128,7 @@ struct ContentView: View {
             // --- メイン画像表示エリア
             if model.images.isEmpty {
                 //画像なしのメッセージ表示
-                Text("画像が読み込まれていません")
+                Text("Image not loaded.")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .foregroundColor(.secondary)
             } else {
@@ -154,8 +156,6 @@ struct ContentView: View {
         }
         // ウィンドウ最小サイズ
         .frame(minWidth: 600, minHeight: 400)
-        //.ignoresSafeArea() // ここが重要！
-        
     }
 }
 
@@ -173,7 +173,7 @@ struct SettingsView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("setting設定")
+            Text("Settings")
                 .font(.title2)
                 .bold()
             
@@ -181,23 +181,18 @@ struct SettingsView: View {
             
             // ここを HStack にして横並びに
             HStack(alignment: .top, spacing: 20) {
-                GroupBox(label: Text("操作方法")) {
+                GroupBox(label: Text("How to Use")) {
                     VStack(alignment: .leading, spacing: 6) {
                         
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("・← / →：前後の画像を表示")
-                            Text("・右で進む、左で戻る（逆設定可能）")
-                            Text("・マウスドラッグ：画像を移動")
-                            Text("・ダブルクリック：拡大(2倍,4倍,リセット)")
-                            Text("・[📖]は一つ前の画像を右に、")
-                            Text("　　表示中の画像を左に表示（逆設定可能）")
-                            Text("　　進むか戻るで解除されます。")
-                            Text("・[📖]This image will be ")
-                            Text("　　temporarily displayed in a ")
-                            Text("　　two-page spread.")
-                            Text("・[Select]で下記の形式で指定する")
-                            Text("　　ファイルを読み込みます。")
-                            Text("対応拡張子　jpg,jpeg,png,gif,bmp,webp")
+                            Text("・← / →: Show previous/next image")
+                            Text("・Right to go forward, left to go back (can be reversed)")
+                            Text("・Mouse drag: Move the image")
+                            Text("・Double click: Zoom (2x, 4x, reset)")
+                            Text("・[📖] moves the previous image to the right Displays the current image on the left (can be reversed) Will be canceled when you move forward/backward")
+                            Text("・Use [Select] to load a file in one of the formats below")
+                            Text("  Load file Supported formats: jpg, jpeg, png, gif, bmp, webp")
+
                             
                         }
                         .font(.system(size: 13))
@@ -210,12 +205,10 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity)
                 
-                GroupBox(label: Text("オプション")) {
+                GroupBox(label: Text("Options")) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("← → キーの方向を逆にする", isOn: $reverseKeyboard)
-                        Text("Reverse left/right arrow key behavior")
-                        Toggle("見開きを左右逆に表示", isOn: $reverseSpread)
-                        Text("Flip page layout (left-right reversed)")
+                        Toggle("Reverse ← → arrow key direction", isOn: $reverseKeyboard)
+                        Toggle("Display page spread left-right reversed", isOn: $reverseSpread)
                     }
                     .padding(.top, 4)
                 }
