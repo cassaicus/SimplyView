@@ -203,10 +203,6 @@ class ImageViewerModel: ObservableObject {
         let newImage = NSImage(size: size)           // 合成用の空のNSImageを生成
         newImage.lockFocus()                         // 描画コンテキストを開く
 
-        // デバッグ用：画像サイズを表示
-        print(scaledImg1.size)
-        print(scaledImg2.size)
-
         // reverseSpread が有効な場合は左右を入れ替えて描画
         if reverseSpread {
             scaledImg2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
@@ -423,6 +419,19 @@ struct PageControllerView: NSViewControllerRepresentable {
                 layer.anchorPoint = CGPoint(x: ax, y: ay)
                 // レイヤーの位置をクリック位置に合わせて移動（見た目の中心点がズレないよう調整）
                 layer.position = CGPoint(x: loc.x, y: loc.y)
+                
+                
+                var realScale = 0.0
+                if let rep = iv.image?.representations.first {
+                    let pixelWidth = CGFloat(rep.pixelsWide)
+                    let viewWidth = iv.bounds.width
+                    realScale = pixelWidth / viewWidth
+                }
+                
+                print(realScale)
+                
+                
+                
                 // 現在の拡大率に応じて段階的に切り替え（等倍 → 2倍 → 4倍 → リセット）
                 switch self.parent.model.scale {
                 case ..<1.5:
@@ -476,7 +485,6 @@ struct PageControllerView: NSViewControllerRepresentable {
                 if let image = imageView.image {
                     let imageSize = image.size
                     let zoomScale = model.scale
-                    print(image.size)
                     // 拡大後の画像サイズ
                     let zoomedImageWidth = imageSize.width * zoomScale
                     let zoomedImageHeight = imageSize.height * zoomScale

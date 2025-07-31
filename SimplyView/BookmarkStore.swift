@@ -83,11 +83,16 @@ class BookmarkStore: ObservableObject {
     func removeAll() {
         bookmarkedFolders = []
     }
-
-    // フォルダがすでにブックマークに含まれているか判定
-    func isBookmarked(_ folderURL: URL) -> Bool {
-        return bookmarkedFolders.contains(folderURL.path)
+    
+    //
+    func folderopen(from folderURL: URL) {
+        print("test")
+        NSWorkspace.shared.open(folderURL)
     }
+//    // フォルダがすでにブックマークに含まれているか判定
+//    func isBookmarked(_ folderURL: URL) -> Bool {
+//        return bookmarkedFolders.contains(folderURL.path)
+//    }
 }
 
 
@@ -100,6 +105,16 @@ struct BookmarkCommands: Commands {
     var body: some Commands {
         CommandMenu("Bookmark") {                      // メニュータイトル「Bookmark」
 
+            // FolderSelect
+            Button(action: {
+                store.FolderSelect()
+            }) {
+                Text("BookmarkFolder Select")
+            }
+
+            // 仕切り線
+            Divider()
+
             // ブックマークされた各フォルダをリスト表示
             ForEach(store.items) { bookmark in
                 Button(action: {
@@ -110,28 +125,6 @@ struct BookmarkCommands: Commands {
             }
 
             // 仕切り線
-            Divider()
-            
-            
-            Button("AddBookmark") {
-                guard model.images.indices.contains(model.currentIndex) else { return }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                store.addBookmark(from: folderURL)
-            }
-            // currentIndex が無効、または URL がフォルダにならない場合に無効化
-            .disabled({
-                guard model.images.indices.contains(model.currentIndex) else { return true }
-                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
-                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
-            }())
-            
-            // FolderSelect
-            Button(action: {
-                store.FolderSelect()
-            }) {
-                Text("BookmarkFolder Select")
-            }
-            
             Divider()
             
             // 現在の画像のフォルダをブックマークから削除
@@ -154,6 +147,33 @@ struct BookmarkCommands: Commands {
 
                 }
             }
+            
+            // 仕切り線
+            Divider()
+            
+            Button("AddBookmark") {
+                guard model.images.indices.contains(model.currentIndex) else { return }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                store.addBookmark(from: folderURL)
+            }
+            // currentIndex が無効、または URL がフォルダにならない場合に無効化
+            .disabled({
+                guard model.images.indices.contains(model.currentIndex) else { return true }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
+            }())
+
+            Button("Folder OPEN") {
+                guard model.images.indices.contains(model.currentIndex) else { return }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                store.folderopen(from: folderURL)
+            }
+            // currentIndex が無効、または URL がフォルダにならない場合に無効化
+            .disabled({
+                guard model.images.indices.contains(model.currentIndex) else { return true }
+                let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
+                return !FileManager.default.fileExists(atPath: folderURL.path, isDirectory: nil)
+            }())
         }
     }
 }
