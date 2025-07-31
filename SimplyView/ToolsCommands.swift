@@ -139,7 +139,7 @@ struct ToolsCommands: Commands {
             // メニュー内に区切り線を挿入
             Divider()
             // 現在のフォルダをFinderで開くボタン
-            Button("Open the current folder in Finder") {
+            Button("Show in Finder") {
                 let folderURL = model.images[model.currentIndex].deletingLastPathComponent()
                 // macOSのFinderでフォルダを開く
                 NSWorkspace.shared.open(folderURL)
