@@ -29,11 +29,8 @@ class ImageViewerModel: ObservableObject {
     // 現在の NSImageView への参照
     var currentImageView: NSImageView?
 
-    
-
+    //レイヤーを拡大縮小につかう関数
     func applyTransform(iv: NSImageView) {
-        
-        
         var transform = CATransform3DIdentity
         // スケール（拡大率）を適用
         transform = CATransform3DScale(transform, scale, scale, 1.0)
@@ -46,7 +43,8 @@ class ImageViewerModel: ObservableObject {
     //上書き
     func overrideImage(for url: URL, with image: NSImage) {
         temporaryImageOverrides[url] = image
-        objectWillChange.send() // 強制UI更新
+        // 強制UI更新
+        objectWillChange.send()
     }
     //合成を解除
     func clearOverrides() {
@@ -186,17 +184,23 @@ class ImageViewerModel: ObservableObject {
 
         // img1が小さい場合、高さをmaxHeightに揃えて拡大
         if img1.size.height < maxHeight {
-            let scale = maxHeight / img1.size.height                         // 拡大倍率を計算
-            let newSize = NSSize(width: img1.size.width * scale, height: maxHeight) // アスペクト比を維持したサイズ
-            scaledImg1 = NSImage(size: newSize)                              // 新しい画像を作成
-            scaledImg1.lockFocus()                                           // 描画準備
-            img1.draw(in: NSRect(origin: .zero, size: newSize),              // 拡大描画
+            // 拡大倍率を計算
+            let scale = maxHeight / img1.size.height
+            // アスペクト比を維持したサイズ
+            let newSize = NSSize(width: img1.size.width * scale, height: maxHeight)
+            // 新しい画像を作成
+            scaledImg1 = NSImage(size: newSize)
+            // 描画準備
+            scaledImg1.lockFocus()
+            // 拡大描画
+            img1.draw(in: NSRect(origin: .zero, size: newSize),
                       from: .zero,
                       operation: .sourceOver,
                       fraction: 1.0)
             scaledImg1.unlockFocus()
         } else {
-            scaledImg1 = img1 // すでに高さが最大ならそのまま使用
+            // すでに高さが最大ならそのまま使用
+            scaledImg1 = img1
         }
 
         // img2が小さい場合、高さをmaxHeightに揃えて拡大（img1と同様の処理）
@@ -217,8 +221,10 @@ class ImageViewerModel: ObservableObject {
         // 合成後の画像サイズ（横に2枚並べるので幅を加算、高さは最大値）
         let totalWidth = scaledImg1.size.width + scaledImg2.size.width
         let size = NSSize(width: totalWidth, height: maxHeight)
-        let newImage = NSImage(size: size)           // 合成用の空のNSImageを生成
-        newImage.lockFocus()                         // 描画コンテキストを開く
+        // 合成用の空のNSImageを生成
+        let newImage = NSImage(size: size)
+        // 描画コンテキストを開く
+        newImage.lockFocus()
 
         // reverseSpread が有効な場合は左右を入れ替えて描画
         if reverseSpread {
@@ -228,10 +234,10 @@ class ImageViewerModel: ObservableObject {
             scaledImg1.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
             scaledImg2.draw(at: NSPoint(x: scaledImg1.size.width, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
         }
-
-        newImage.unlockFocus() // 描画コンテキストを閉じる
-
-        return newImage // 合成したNSImageを返す
+        // 描画コンテキストを閉じる
+        newImage.unlockFocus()
+        // 合成したNSImageを返す
+        return newImage
     }
 
     // 不完全な画像読み込みを防ぐため、画像をピクセル単位で明示的に描画し直す関数
@@ -241,16 +247,19 @@ class ImageViewerModel: ObservableObject {
 
         // 実ピクセル数で新しい画像サイズを決定
         let size = NSSize(width: rep.pixelsWide, height: rep.pixelsHigh)
-        let newImage = NSImage(size: size) // 指定サイズのNSImageを生成
-
-        newImage.lockFocus() // 描画開始
+        // 指定サイズのNSImageを生成
+        let newImage = NSImage(size: size)
+        // 描画開始
+        newImage.lockFocus()
         nsImage.draw(in: NSRect(origin: .zero, size: size),
                      from: .zero,
                      operation: .sourceOver,
                      fraction: 1.0)
-        newImage.unlockFocus() // 描画終了
-
-        return newImage // 正確なサイズで再描画された画像を返す
+        
+        // 描画終了
+        newImage.unlockFocus()
+        // 正確なサイズで再描画された画像を返す
+        return newImage
     }
 
 }
@@ -331,7 +340,8 @@ struct PageControllerView: NSViewControllerRepresentable {
         
         // 各オブジェクトに紐づく識別子
         func pageController(_: NSPageController, identifierFor _: Any) -> String {
-            "ImageVC" // 固定文字列で識別
+            // 固定文字列で識別
+            "ImageVC"
         }
         
         // ページが表示される直前に呼ばれる処理（画像の読み込みや表示設定などを行う）
