@@ -143,9 +143,6 @@
     "NO image" : {
 
     },
-    "Open the current folder in Finder" : {
-
-    },
     "Options" : {
 
     },
@@ -169,6 +166,9 @@
       }
     },
     "Settings" : {
+
+    },
+    "Show in Finder" : {
 
     },
     "SimplyView" : {

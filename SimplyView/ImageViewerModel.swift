@@ -28,7 +28,7 @@ class ImageViewerModel: ObservableObject {
     
     // 現在の NSImageView への参照
     var currentImageView: NSImageView?
-
+    
     //レイヤーを拡大縮小につかう関数
     func applyTransform(iv: NSImageView) {
         var transform = CATransform3DIdentity
@@ -162,7 +162,7 @@ class ImageViewerModel: ObservableObject {
         resizedImage.unlockFocus()
         return resizedImage
     }
-        
+    
     // 2つの画像URL（current, next）を横に合成して、1枚の見開き画像を生成する関数
     func makeSpreadImage(current: URL, next: URL?) -> NSImage? {
         // current画像は必須、next画像はオプションとして読み込み（どちらもNSImageに）
@@ -174,14 +174,14 @@ class ImageViewerModel: ObservableObject {
             // どちらかの画像が読み込めなければnilで中断
             return nil
         }
-
+        
         // 高さの大きい方を基準に、見開きの高さを決定
         let maxHeight = max(img1.size.height, img2.size.height)
-
+        
         // スケーリング後の画像（縦揃え用）を入れる変数
         let scaledImg1: NSImage
         let scaledImg2: NSImage
-
+        
         // img1が小さい場合、高さをmaxHeightに揃えて拡大
         if img1.size.height < maxHeight {
             // 拡大倍率を計算
@@ -202,7 +202,7 @@ class ImageViewerModel: ObservableObject {
             // すでに高さが最大ならそのまま使用
             scaledImg1 = img1
         }
-
+        
         // img2が小さい場合、高さをmaxHeightに揃えて拡大（img1と同様の処理）
         if img2.size.height < maxHeight {
             let scale = maxHeight / img2.size.height
@@ -217,7 +217,7 @@ class ImageViewerModel: ObservableObject {
         } else {
             scaledImg2 = img2
         }
-
+        
         // 合成後の画像サイズ（横に2枚並べるので幅を加算、高さは最大値）
         let totalWidth = scaledImg1.size.width + scaledImg2.size.width
         let size = NSSize(width: totalWidth, height: maxHeight)
@@ -225,7 +225,7 @@ class ImageViewerModel: ObservableObject {
         let newImage = NSImage(size: size)
         // 描画コンテキストを開く
         newImage.lockFocus()
-
+        
         // reverseSpread が有効な場合は左右を入れ替えて描画
         if reverseSpread {
             scaledImg2.draw(at: NSPoint(x: 0, y: 0), from: .zero, operation: .sourceOver, fraction: 1.0)
@@ -239,12 +239,12 @@ class ImageViewerModel: ObservableObject {
         // 合成したNSImageを返す
         return newImage
     }
-
+    
     // 不完全な画像読み込みを防ぐため、画像をピクセル単位で明示的に描画し直す関数
     func forceDecodeImage(_ nsImage: NSImage) -> NSImage? {
         // 最初の画像表現（NSImageRep）を取得（失敗したらnil）
         guard let rep = nsImage.representations.first else { return nil }
-
+        
         // 実ピクセル数で新しい画像サイズを決定
         let size = NSSize(width: rep.pixelsWide, height: rep.pixelsHigh)
         // 指定サイズのNSImageを生成
@@ -261,7 +261,7 @@ class ImageViewerModel: ObservableObject {
         // 正確なサイズで再描画された画像を返す
         return newImage
     }
-
+    
 }
 
 // MARK: PageControllerView
@@ -270,7 +270,7 @@ struct PageControllerView: NSViewControllerRepresentable {
     @ObservedObject var model: ImageViewerModel
     // 外部からNSPageControllerを操作するためのホルダー
     let holder: ControllerHolder
-        
+    
     func makeNSViewController(context: Context) -> NSPageController {
         // NSPageControllerインスタンス生成
         let pc = NSPageController()

@@ -3,6 +3,17 @@ import AppKit                    // macOS 固有の AppKit 機能を使用しま
 
 // MARK: AppDelegate
 class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if let window = NSApplication.shared.windows.first {
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.isMovableByWindowBackground = true
+            window.styleMask.insert(.fullSizeContentView)
+        }
+    }
+    
     // Finder から開かれた複数ファイルの処理用クロージャ（現在は未使用）
     var onOpenFile: (([URL]) -> Void)?
     // 選択されたファイルとそのフォルダ内の画像ファイル一覧を処理するクロージャ

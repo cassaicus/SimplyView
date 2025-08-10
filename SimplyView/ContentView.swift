@@ -20,7 +20,7 @@ struct ContentView: View {
             // --- ヘッダーエリア（フォルダ選択 + サムネイル + インジケータ）
             HStack(spacing: 6) {
                 // --- フォルダ選択ボタン
-                Button("FolderSelect") {
+                Button("SelectFolder") {
                     // macOS の標準フォルダ選択ダイアログ
                     let panel = NSOpenPanel()
                     panel.canChooseDirectories = true
